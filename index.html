@@ -1,12 +1,58 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tierra Nativa SA</title>
+    <title>Tierra Nativa SA · Fábrica de Cuadros, Portarretratos y Deco</title>
+    <meta
+      name="description"
+      content="Tierra Nativa SA — fábrica argentina de cuadros, portarretratos, bandejas y productos de madera para el hogar desde 2007. Pedidos mayoristas."
+    />
+    <link rel="canonical" href="https://tierravintage.com.ar/" />
     <link rel="icon" type="image/png" href="./img/favicon.png" />
 
     <link rel="stylesheet" href="./css/styles.index.css" />
+
+    <!-- Open Graph / previews en WhatsApp, Facebook, Instagram -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tierra Nativa SA" />
+    <meta
+      property="og:title"
+      content="Tierra Nativa SA · Fábrica de Cuadros, Portarretratos y Deco"
+    />
+    <meta
+      property="og:description"
+      content="Fábrica argentina de cuadros, portarretratos, bandejas y productos de madera para el hogar desde 2007. Pedidos mayoristas."
+    />
+    <meta property="og:url" content="https://tierravintage.com.ar/" />
+    <meta
+      property="og:image"
+      content="https://tierravintage.com.ar/img/logo.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Tierra Nativa SA",
+        "legalName": "TIERRA NATIVA SA",
+        "url": "https://tierravintage.com.ar/",
+        "logo": "https://tierravintage.com.ar/img/logo.png",
+        "foundingDate": "2007",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "AR"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "email": "tierranativ@hotmail.com",
+          "telephone": "+54-9-11-3118-1185"
+        },
+        "sameAs": ["https://www.instagram.com/tierranativasa"]
+      }
+    </script>
   </head>
 
   <body>
@@ -19,7 +65,7 @@
             loop
             muted
             playsinline
-            preload="auto"
+            preload="metadata"
             class="bg-video"
           >
             <!-- Mobile (hasta 600px) -->
@@ -45,8 +91,10 @@
       <div class="hero-overlay"></div>
 
       <div class="hero-center">
-        <h1>Fábrica de Cuadros, Portas & Deco</h1>
-        <a href="mayorista.html" class="btn-outline" id="btnMayorista">PEDIDO MAYORISTA</a>
+        <h1>Fábrica de Cuadros, Portarretratos & Deco</h1>
+        <a href="mayorista.html" class="btn-outline" id="btnMayorista"
+          >PEDIDO MAYORISTA</a
+        >
       </div>
     </section>
 
@@ -55,7 +103,11 @@
       <div class="container">
         <div class="about">
           <div class="img">
-            <img src="img/img_landing.png" alt="Cocina" />
+            <img
+              src="img/img_landing.png"
+              alt="Cuadros y decoración de madera de Tierra Nativa"
+              fetchpriority="high"
+            />
           </div>
 
           <div class="about-text">
@@ -84,17 +136,19 @@
           Descargá los catálogos actualizados con nuestra variedad de artículos.
         </p>
 
-        <!-- ⚠️ Reemplazar más adelante por ./pdf/catalogo.pdf -->
-
         <div class="botones">
           <a
             href="https://drive.google.com/file/d/10XE6TEo2BUUkbNK1Zrp-PbpEirDrp1HC/view?usp=drive_link"
+            target="_blank"
+            rel="noopener"
             class="btn-catalogo"
             >CUADROS</a
           >
 
           <a
             href="https://drive.google.com/file/d/1D_zxq13CqGmk_cKHII3dmjqHy3l1JFgJ/view?usp=drive_link"
+            target="_blank"
+            rel="noopener"
             class="btn-catalogo"
             >DECO</a
           >
@@ -103,30 +157,213 @@
     </section>
 
     <!-- ================= REDES SOCIALES ================= -->
-    <!-- TODO: reemplazar feed de Instagram (cuenta loekemeyer -> tierranativasa)
     <section class="social-section" id="redes">
       <div class="container">
         <h2 class="section-title">Seguinos en Instagram</h2>
 
         <div class="ig-widget-wrap">
-          <!-/- Elfsight Instagram Feed | Untitled Instagram Feed -/->
-          <script src="https://elfsightcdn.com/platform.js" async></script>
-          <div
-            class="elfsight-app-159299ba-ae3e-422f-a234-4377be6151d0"
-            data-elfsight-app-lazy
-          ></div>
+          <div class="ig-feed-header">
+            <a
+              class="ig-feed-avatar"
+              href="https://www.instagram.com/tierranativasa"
+              target="_blank"
+              rel="noopener"
+              aria-label="Ir al perfil de @tierranativasa"
+            >
+              <img src="./img/logo.png" alt="Logo Tierra Nativa" />
+            </a>
+            <div class="ig-feed-info">
+              <a
+                class="ig-feed-handle"
+                href="https://www.instagram.com/tierranativasa"
+                target="_blank"
+                rel="noopener"
+                >@tierranativasa</a
+              >
+              <div class="ig-feed-sub">Cuadros, portarretratos & deco · Desde 2007</div>
+            </div>
+            <a
+              class="ig-feed-cta"
+              href="https://www.instagram.com/tierranativasa"
+              target="_blank"
+              rel="noopener"
+            >
+              <svg
+                class="ig-feed-cta-icon"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+              </svg>
+              <span>Seguir</span>
+            </a>
+          </div>
+
+          <div id="igFeed" class="ig-feed" aria-live="polite" aria-busy="true">
+            <div class="ig-feed-loading">Cargando feed de Instagram…</div>
+          </div>
         </div>
       </div>
     </section>
     <script>
-      setInterval(function () {
-        document.querySelectorAll('a[href*="elfsight"]').forEach((el) => {
-          el.style.display = "none";
-        });
-      }, 1000);
+      (function () {
+        var FEED_URL =
+          "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/ig-feed";
+        var PROFILE_URL = "https://www.instagram.com/tierranativasa";
+        var MAX_ITEMS = 8;
+
+        var root = document.getElementById("igFeed");
+        if (!root) return;
+
+        function esc(s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        function thumb(it) {
+          if (it.media_type === "VIDEO")
+            return it.thumbnail_url || it.media_url || "";
+          return it.media_url || it.thumbnail_url || "";
+        }
+
+        function applyProfile(p) {
+          if (!p) return;
+          if (p.profile_picture_url) {
+            document
+              .querySelectorAll(".ig-feed-avatar img")
+              .forEach(function (img) {
+                img.src = p.profile_picture_url;
+              });
+          }
+          if (p.username) {
+            var url = "https://www.instagram.com/" + p.username;
+            document
+              .querySelectorAll(".ig-feed-handle")
+              .forEach(function (a) {
+                a.textContent = "@" + p.username;
+                a.href = url;
+              });
+            document
+              .querySelectorAll(".ig-feed-avatar, .ig-feed-cta")
+              .forEach(function (a) {
+                a.href = url;
+              });
+          }
+        }
+
+        function renderFallback() {
+          root.innerHTML =
+            '<a class="ig-feed-fallback" href="' +
+            PROFILE_URL +
+            '" target="_blank" rel="noopener">Ver nuestro feed en Instagram →</a>';
+          root.setAttribute("aria-busy", "false");
+        }
+
+        function render(items) {
+          if (!items || !items.length) return renderFallback();
+          var html = items
+            .slice(0, MAX_ITEMS)
+            .map(function (it) {
+              var src = thumb(it);
+              if (!src) return "";
+              var alt = (it.caption || "Publicación de @tierranativasa").slice(0, 120);
+              var badge =
+                it.media_type === "VIDEO"
+                  ? '<span class="ig-feed-badge" aria-hidden="true">▶</span>'
+                  : it.media_type === "CAROUSEL_ALBUM"
+                    ? '<span class="ig-feed-badge" aria-hidden="true">⧉</span>'
+                    : "";
+              return (
+                '<a class="ig-feed-item" href="' +
+                esc(it.permalink || PROFILE_URL) +
+                '" target="_blank" rel="noopener" aria-label="Ver en Instagram">' +
+                '<img loading="lazy" decoding="async" src="' +
+                esc(src) +
+                '" alt="' +
+                esc(alt) +
+                '">' +
+                badge +
+                "</a>"
+              );
+            })
+            .join("");
+          if (!html) return renderFallback();
+          root.innerHTML = html;
+          root.setAttribute("aria-busy", "false");
+        }
+
+        fetch(FEED_URL, { method: "GET" })
+          .then(function (r) {
+            return r.ok ? r.json() : Promise.reject(r.status);
+          })
+          .then(function (j) {
+            if (j && j.profile) applyProfile(j.profile);
+            if (j && j.ok && Array.isArray(j.data)) render(j.data);
+            else renderFallback();
+          })
+          .catch(function () {
+            renderFallback();
+          });
+      })();
     </script>
-    -->
-    <!-- FIN sección redes (comentada) -->
+
+    <!-- ================= CLIENTES PRINCIPALES ================= -->
+    <!-- ⚠️ VERIFICAR: estos logos vienen del sitio de Loekemeyer. Confirmar
+         cuáles son clientes reales de Tierra Nativa y reemplazar el resto. -->
+    <section class="clientes-section" id="clientes">
+      <div class="container">
+        <h2 class="section-title">Empresas que confían en nosotros</h2>
+
+        <div class="clientes-carousel">
+          <div class="clientes-track">
+            <a href="https://www.jumbo.com.ar/" target="_blank" rel="noopener">
+              <img src="./img/jumbo_logo.png" alt="Jumbo" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.laanonima.com.ar/" target="_blank" rel="noopener">
+              <img src="./img/laanonima_logo.png" alt="La Anónima" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.coto.com.ar/" target="_blank" rel="noopener">
+              <img src="./img/coto_logo.png" alt="Coto" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://diacorporate.com/" target="_blank" rel="noopener">
+              <img src="./img/dia_logo.png" alt="DIA" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.masonline.com.ar/" target="_blank" rel="noopener">
+              <img src="./img/changomas_logo.png" alt="ChangoMas" width="150" height="80" loading="lazy" />
+            </a>
+
+            <!-- duplicado para el carrusel infinito -->
+            <a href="https://www.jumbo.com.ar/" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img src="./img/jumbo_logo.png" alt="" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.laanonima.com.ar/" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img src="./img/laanonima_logo.png" alt="" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.coto.com.ar/" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img src="./img/coto_logo.png" alt="" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://diacorporate.com/" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img src="./img/dia_logo.png" alt="" width="150" height="80" loading="lazy" />
+            </a>
+            <a href="https://www.masonline.com.ar/" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
+              <img src="./img/changomas_logo.png" alt="" width="150" height="80" loading="lazy" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- FOOTER / CONTACTO -->
     <!-- ================= CONTACTO (TABS) ================= -->
@@ -138,25 +375,16 @@
           <article class="contact-card">
             <div class="contact-icon" aria-hidden="true">
               <!-- carrito -->
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="9" cy="20" r="1"></circle>
                 <circle cx="17" cy="20" r="1"></circle>
-                <path
-                  d="M3 4h2l2.2 10.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L22 8H6"
-                ></path>
+                <path d="M3 4h2l2.2 10.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L22 8H6"></path>
               </svg>
             </div>
             <h3>Ventas</h3>
             <p>
-              Envió cotizadores, Fecha de entrega de pedidos, Corrección
-              direcciones, Dirección de entrega
+              Envío de cotizadores, fecha de entrega de pedidos, corrección de
+              direcciones, dirección de entrega.
             </p>
             <a
               class="contact-link"
@@ -171,14 +399,7 @@
           <article class="contact-card">
             <div class="contact-icon" aria-hidden="true">
               <!-- recibo -->
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M7 3h10v18l-2-1-3 1-3-1-2 1V3z"></path>
                 <path d="M9 7h6"></path>
                 <path d="M9 11h6"></path>
@@ -187,8 +408,8 @@
             </div>
             <h3>Cobranzas</h3>
             <p>
-              Consulta CBU, Envió comprobante de pago, Envió ECHEQs, Solicitud
-              Nota de Crédito,
+              Consulta CBU, envío de comprobantes de pago, envío de ECHEQs,
+              solicitud de nota de crédito.
             </p>
             <a
               class="contact-link"
@@ -203,14 +424,7 @@
           <article class="contact-card">
             <div class="contact-icon" aria-hidden="true">
               <!-- ícono: maletín -->
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"></path>
                 <rect x="3" y="6" width="18" height="14" rx="2"></rect>
                 <path d="M3 12h18"></path>
@@ -218,16 +432,13 @@
                 <path d="M15 12v2"></path>
               </svg>
             </div>
-
             <h3>Clientes</h3>
             <p>Quiero ser cliente mayorista.</p>
-
-            <!-- ⚠️ Reemplazá NUMERO_A_DEFINIR por el número final en formato 54911xxxxxxx -->
             <a
               class="contact-link"
               target="_blank"
               rel="noopener"
-              href="https://wa.me/541131181185?text=Quiero%20ser%20cliente"
+              href="https://wa.me/5491131181185?text=Hola%20Tierra%20Nativa.%20Quiero%20ser%20cliente"
             >
               WhatsApp Mayoristas
             </a>
@@ -236,22 +447,13 @@
           <article class="contact-card">
             <div class="contact-icon" aria-hidden="true">
               <!-- usuarios -->
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"
-                ></path>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"></path>
                 <path d="M9 12l2 2 4-4"></path>
               </svg>
             </div>
             <h3>Atención Post-Venta</h3>
-            <p>Garantías, Reclamos, Reposiciones</p>
+            <p>Garantías, reclamos, reposiciones.</p>
             <a
               class="contact-link"
               target="_blank"
@@ -265,22 +467,13 @@
           <article class="contact-card">
             <div class="contact-icon" aria-hidden="true">
               <!-- ícono: usuario -->
-              <svg
-                viewBox="0 0 24 24"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 21a8 8 0 0 0-16 0"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
             </div>
-
             <h3>RRHH</h3>
-            <p>Trabajo, CV, búsquedas laborales</p>
-
+            <p>Trabajo, CV, búsquedas laborales.</p>
             <a
               class="contact-link"
               target="_blank"
@@ -301,7 +494,7 @@
           <img src="./img/logo.png" alt="Tierra Nativa" class="footer-logo" />
           <p>
             Fabricación y comercialización de cuadros, portarretratos y
-            decoracion de madera.
+            decoración de madera desde 2007.
           </p>
         </div>
 
@@ -332,7 +525,13 @@
       </div>
       <div class="footer-bottom">
         <div class="container footer-bottom-row">
-          <span>© 2026 Tierra Nativa SA — Todos los derechos reservados.</span>
+          <span
+            >© 2026 Tierra Nativa SA — Todos los derechos reservados.
+            <span
+              data-app-version
+              style="font-size: 11px; color: #9a9a9a; margin-left: 6px"
+            ></span
+          ></span>
 
           <div class="footer-links">
             <a href="#" class="footer-link" data-modal="privacy"
@@ -390,7 +589,8 @@
       </svg>
     </a>
 
-    <script src="script.index.js"></script>
+    <script src="./version.js?v=1"></script>
+    <script src="script.index.js?v=1"></script>
 
     <!-- ================= MODAL LEGAL ================= -->
     <div class="modal-backdrop" id="legalModal" aria-hidden="true">
