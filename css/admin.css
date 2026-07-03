@@ -3051,6 +3051,69 @@ input[type="number"].manual-cell {
   border-left: 2px solid #d1d5db;
 }
 
+/* Columna Ranking (#) — sticky leftmost, antes que Cod */
+.est-madre-table th.est-madre-th-rank {
+  text-align: center;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  min-width: 42px;
+  background: #19222f;
+}
+.est-madre-table td.est-madre-td-rank {
+  text-align: center;
+  font-weight: 700;
+  color: #6b7280;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 1;
+  min-width: 42px;
+}
+.est-madre-table tbody tr:nth-child(even) td.est-madre-td-rank {
+  background: #fafbfc;
+}
+/* Cod y Desc se corren para hacer lugar al Rank (rank ocupa los primeros 42px) */
+.est-madre-table th.est-madre-th-cod {
+  left: 42px;
+}
+.est-madre-table th.est-madre-th-desc {
+  left: 112px;
+}
+.est-madre-table td.est-madre-td-cod {
+  left: 42px;
+}
+.est-madre-table td.est-madre-td-desc {
+  left: 112px;
+}
+/* Totales row: rank vacío sigue el bg de totals */
+.est-madre-table tr.est-madre-totals-row th.est-madre-th-rank {
+  background: #2c3a4e;
+}
+/* z-index para que rank quede arriba al scrollear horizontalmente (mismo trato que cod/desc) */
+.est-madre-table thead tr:not(.est-madre-totals-row) th.est-madre-th-rank {
+  z-index: 3;
+}
+
+/* Sortable headers — cursor pointer + hover + flecha */
+.est-madre-table th.est-madre-sort-th {
+  cursor: pointer;
+  user-select: none;
+}
+.est-madre-table th.est-madre-sort-th:hover {
+  background: #2a3849;
+}
+.est-madre-table th.est-madre-sort-th.est-madre-sorted {
+  background: #1f7a3a;
+}
+.est-madre-table th.est-madre-sort-th .est-madre-sort-idle {
+  opacity: 0.35;
+  font-weight: 400;
+}
+.est-madre-table th.est-madre-sort-th .est-madre-sort-active {
+  font-weight: 800;
+}
+
 /* ===================== MFA / 2FA ===================== */
 .mfa-overlay {
   z-index: 1001;

@@ -96,9 +96,9 @@
 
   // ----- Constantes -----
   var SHEETS_PROXY_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-proxy";
   var SHEETS_ENTREGAS_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-entregas-proxy";
 
   var CARD_COUNT = 4;
   var cardInstances = [];
@@ -1256,7 +1256,12 @@
 
         window.sb
           .from("orders")
-          .update({ sheets_payload: sheetsPayload, is_promo: false, extra_discount: 0 })
+          .update({
+            sheets_payload: sheetsPayload,
+            is_promo: false,
+            extra_discount: 0,
+            placed_by_auth_user_id: session.user.id,
+          })
           .eq("id", orderId)
           .then(function () {});
 

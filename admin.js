@@ -1,7 +1,8 @@
 ﻿"use strict";
 
 var SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-var SUPABASE_ANON_KEY = "sb_publishable_b4ua15HoSbe8o5SHsbJxWw_fvZFUdxv";
+var SUPABASE_ANON_KEY =
+  "sb_publishable_b4ua15HoSbe8o5SHsbJxWw_fvZFUdxv";
 var TABLE_CUSTOMERS = "customers";
 var TABLE_ADDRESSES = "customer_delivery_addresses";
 
@@ -54,11 +55,11 @@ async function checkAuth() {
     if (cruceDet) cruceDet.style.display = "none";
   }
   document.getElementById("loadingScreen").style.display = "none";
-  // 2FA por email — COMENTADO: el mail destino no existe todavía. Reactivar cuando se configure.
-  // if (isPPPAdmin) {
-  //   var otpOk = await ensureEmailOtp();
-  //   if (!otpOk) return false;
-  // }
+  // 2FA por email solo se exige al admin PPP (CUIT 30-51584245-0). Resto entra directo.
+  if (isPPPAdmin) {
+    var otpOk = await ensureEmailOtp();
+    if (!otpOk) return false;
+  }
   document.getElementById("appShell").style.display = "flex";
   return true;
 }
@@ -623,8 +624,66 @@ document.querySelectorAll(".nav-item").forEach(function (btn) {
     ) {
       cargarRegistroEnvios();
     }
+    if (
+      btn.dataset.page === "origen-pedidos" &&
+      typeof cargarOrigenPedidos === "function"
+    ) {
+      cargarOrigenPedidos();
+    }
+    if (
+      btn.dataset.page === "uso-modulos" &&
+      typeof cargarUsoModulos === "function"
+    ) {
+      cargarUsoModulos();
+    }
   });
 });
+
+var origenPedidosRefreshBtn = document.getElementById(
+  "origenPedidosRefreshBtn",
+);
+if (origenPedidosRefreshBtn) {
+  origenPedidosRefreshBtn.addEventListener("click", cargarOrigenPedidos);
+}
+
+["origenPedidosDesde", "origenPedidosHasta"].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener("change", cargarOrigenPedidos);
+});
+
+var origenPedidosLimpiarBtn = document.getElementById(
+  "origenPedidosLimpiarBtn",
+);
+if (origenPedidosLimpiarBtn) {
+  origenPedidosLimpiarBtn.addEventListener("click", function () {
+    var desde = document.getElementById("origenPedidosDesde");
+    var hasta = document.getElementById("origenPedidosHasta");
+    if (desde) desde.value = "";
+    if (hasta) hasta.value = "";
+    cargarOrigenPedidos();
+  });
+}
+
+var usoModulosRefreshBtn = document.getElementById("usoModulosRefreshBtn");
+if (usoModulosRefreshBtn) {
+  usoModulosRefreshBtn.addEventListener("click", cargarUsoModulos);
+}
+
+["usoModulosDesde", "usoModulosHasta"].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener("change", cargarUsoModulos);
+});
+
+var usoModulosLimpiarBtn = document.getElementById("usoModulosLimpiarBtn");
+if (usoModulosLimpiarBtn) {
+  usoModulosLimpiarBtn.addEventListener("click", function () {
+    var desde = document.getElementById("usoModulosDesde");
+    var hasta = document.getElementById("usoModulosHasta");
+    if (desde) desde.value = "";
+    if (hasta) hasta.value = "";
+    cargarUsoModulos();
+  });
+}
 
 // ---- GROUP TOGGLES (modulos colapsables) ----
 document.querySelectorAll(".nav-group-toggle").forEach(function (toggle) {
@@ -2366,7 +2425,7 @@ async function notifyPendingPPPMismatches() {
   if (!pending.length) return;
 
   var FN_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/notify-m3-mismatch";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/notify-m3-mismatch";
   for (var i = 0; i < pending.length; i++) {
     var p = pending[i];
     try {
@@ -2692,9 +2751,9 @@ var BASE_IMG = SUPABASE_URL + "/storage/v1/object/public/products-images/";
 var BASE_FLYER = SUPABASE_URL + "/storage/v1/object/public/flyers/";
 
 var CP_SHEETS_PROXY_URL =
-  "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+  "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-proxy";
 var CP_SHEETS_ENTREGAS_PROXY_URL =
-  "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+  "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-entregas-proxy";
 var CP_WEB_DISCOUNT = 0.02;
 // Cliente especial con lista propia (Lista 30 - Lista GM). Sin descuentos.
 var CP_GM_COD_CLIENTE = "4080";
@@ -5106,12 +5165,14 @@ async function cpCardDoSubmit(card) {
       }),
     };
 
-    // Guardar payload para retry + marcar origen
+    // Guardar payload para retry + marcar origen (admin cargando desde el
+    // Cotizador → placed_by_auth_user_id queda como "admin" en v_orders_origen)
     sb.from("orders")
       .update({
         sheets_payload: sheetsPayload,
         is_promo: false,
         extra_discount: 0,
+        placed_by_auth_user_id: session.user.id,
       })
       .eq("id", orderId)
       .then(function () {});
@@ -5138,7 +5199,7 @@ async function cpCardDoSubmit(card) {
       direccion_entrega:
         card.finalDeliveryDireccion || card.finalDelivery || "",
       barrio_entrega: card.finalDeliveryZona || "",
-      empresa: "TN",
+      empresa: "LK",
       is_promo: false,
       extra_discount: 0,
       items: itemsPayload.map(function (it) {
@@ -6074,6 +6135,180 @@ async function marcarSucursalCargada(customerId, slot) {
 }
 
 /* =========================================================
+   ORIGEN DE PEDIDOS
+   - Cuenta pedidos por origen_pedido (v_orders_origen) con filtro opcional
+     de rango de fechas (sobre created_at).
+   ========================================================= */
+async function cargarOrigenPedidos() {
+  var statusEl = document.getElementById("origenPedidosStatus");
+  var els = {
+    cliente: document.getElementById("origenPedidosCliente"),
+    vendedor: document.getElementById("origenPedidosVendedor"),
+    admin: document.getElementById("origenPedidosAdmin"),
+    desconocido: document.getElementById("origenPedidosDesconocido"),
+  };
+  if (!els.cliente) return;
+
+  var desdeVal = document.getElementById("origenPedidosDesde")?.value || "";
+  var hastaVal = document.getElementById("origenPedidosHasta")?.value || "";
+
+  if (statusEl) statusEl.textContent = "Cargando…";
+
+  try {
+    var keys = ["cliente", "vendedor", "admin", "desconocido"];
+    var counts = {};
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var q = sb
+        .from("v_orders_origen")
+        .select("order_id", { count: "exact", head: true })
+        .eq("origen_pedido", k);
+      if (desdeVal) q = q.gte("created_at", desdeVal + "T00:00:00");
+      if (hastaVal) q = q.lte("created_at", hastaVal + "T23:59:59.999");
+      var r = await q;
+      if (r.error) throw r.error;
+      counts[k] = r.count || 0;
+    }
+
+    els.cliente.textContent = counts.cliente;
+    els.vendedor.textContent = counts.vendedor;
+    els.admin.textContent = counts.admin;
+    els.desconocido.textContent = counts.desconocido;
+
+    var total = counts.cliente + counts.vendedor + counts.admin + counts.desconocido;
+    var rangoTxt =
+      desdeVal || hastaVal
+        ? " (" + (desdeVal || "…") + " a " + (hastaVal || "…") + ")"
+        : "";
+    if (statusEl) statusEl.textContent = "Total: " + total + " pedidos." + rangoTxt;
+  } catch (e) {
+    console.error("cargarOrigenPedidos error:", e);
+    if (statusEl) {
+      statusEl.textContent =
+        "No se pudo cargar (¿corriste add_order_source_tracking.sql en Supabase?): " +
+        (e.message || String(e));
+    }
+  }
+}
+
+/* =========================================================
+   USO DE MÓDULOS
+   - cart_add_events: clics de "agregar" por módulo (source)
+   - v_order_items_source: líneas que terminaron en pedido confirmado
+   - novedades_impressions: veces que se mostró el carrusel de Novedades
+   ========================================================= */
+var USO_MODULOS_SOURCES = [
+  { key: "catalogo", label: "Catálogo normal" },
+  { key: "novedades", label: "Novedades (carrusel)" },
+  { key: "surtido_faltante", label: '"No te falta esto de tu surtido"' },
+  { key: "upsell_popup", label: "Popup upsell (antes de confirmar)" },
+  { key: "loke", label: "Línea Loke" },
+  { key: "sugerencia_vendedor", label: "Sugerir productos (vendedor)" },
+  { key: "sugerencias", label: "Página Sugerencias (IA)" },
+  { key: "historial", label: 'Historial ("Volver a pedir")' },
+];
+
+async function cargarUsoModulos() {
+  var tbody = document.getElementById("usoModulosTableBody");
+  var statusEl = document.getElementById("usoModulosStatus");
+  if (!tbody) return;
+
+  var desdeVal = document.getElementById("usoModulosDesde")?.value || "";
+  var hastaVal = document.getElementById("usoModulosHasta")?.value || "";
+  var desdeISO = desdeVal ? desdeVal + "T00:00:00" : null;
+  var hastaISO = hastaVal ? hastaVal + "T23:59:59.999" : null;
+
+  function withRange(q) {
+    if (desdeISO) q = q.gte("created_at", desdeISO);
+    if (hastaISO) q = q.lte("created_at", hastaISO);
+    return q;
+  }
+
+  if (statusEl) statusEl.textContent = "Cargando…";
+  tbody.innerHTML = "";
+
+  try {
+    var imprPromise = withRange(
+      sb.from("novedades_impressions").select("id", { count: "exact", head: true }),
+    );
+    var clickPromises = USO_MODULOS_SOURCES.map(function (s) {
+      return withRange(
+        sb
+          .from("cart_add_events")
+          .select("id", { count: "exact", head: true })
+          .eq("source", s.key),
+      );
+    });
+    var lineasPromises = USO_MODULOS_SOURCES.map(function (s) {
+      return withRange(
+        sb
+          .from("v_order_items_source")
+          .select("order_item_id", { count: "exact", head: true })
+          .eq("source", s.key),
+      );
+    });
+
+    var all = await Promise.all(
+      [imprPromise].concat(clickPromises).concat(lineasPromises),
+    );
+
+    var imprResult = all[0];
+    if (imprResult.error) throw imprResult.error;
+    var vistas = imprResult.count || 0;
+
+    var clickResults = all.slice(1, 1 + USO_MODULOS_SOURCES.length);
+    var lineasResults = all.slice(1 + USO_MODULOS_SOURCES.length);
+
+    var rows = USO_MODULOS_SOURCES.map(function (s, i) {
+      if (clickResults[i].error) throw clickResults[i].error;
+      if (lineasResults[i].error) throw lineasResults[i].error;
+      return {
+        key: s.key,
+        label: s.label,
+        clicks: clickResults[i].count || 0,
+        lineas: lineasResults[i].count || 0,
+      };
+    });
+
+    var novRow = rows.filter(function (r) {
+      return r.key === "novedades";
+    })[0];
+    var novAgregados = novRow ? novRow.clicks : 0;
+    var conversion =
+      vistas > 0 ? ((novAgregados / vistas) * 100).toFixed(1) + "%" : "–";
+
+    document.getElementById("usoModulosNovVistas").textContent = vistas;
+    document.getElementById("usoModulosNovAgregados").textContent =
+      novAgregados;
+    document.getElementById("usoModulosNovConversion").textContent =
+      conversion;
+
+    tbody.innerHTML = rows
+      .map(function (r) {
+        return (
+          "<tr><td>" +
+          r.label +
+          "</td><td>" +
+          r.clicks +
+          "</td><td>" +
+          r.lineas +
+          "</td></tr>"
+        );
+      })
+      .join("");
+
+    if (statusEl) statusEl.textContent = "Actualizado.";
+  } catch (e) {
+    console.error("cargarUsoModulos error:", e);
+    if (statusEl) {
+      statusEl.textContent =
+        "No se pudo cargar (¿corriste add_module_usage_tracking.sql en Supabase?): " +
+        (e.message || String(e));
+    }
+  }
+}
+
+/* =========================================================
    ESTADÍSTICA CLIENTES
    - Trae todas las orders confirmadas + customers
    - Para cada cliente: calcula intervalo promedio entre pedidos (frecuencia)
@@ -6674,6 +6909,61 @@ async function cargarEstadisticaMadre(forceReload) {
       var c = String(e.item_code || "").trim().toUpperCase();
       if (c) excludedSet[c] = true;
     });
+
+    // 1.d) CAMINO RÁPIDO: caché materializada (proyección + agregado mensual
+    //      precomputados server-side por cron — ver sql/estadistica_madre_cache.sql).
+    //      Si el RPC existe y trae filas, salteamos TODA la descarga por-cliente y
+    //      el cálculo de proyección en JS (que es lo que hace lento el módulo).
+    //      La proyección viene de fn_proyeccion_madre (misma lógica, una sola fuente
+    //      de verdad). Si el RPC no existe / está vacío, caemos al cascade de abajo
+    //      sin cambiar nada del comportamiento actual.
+    try {
+      if (status) status.textContent = "Cargando caché de estadística…";
+      var cacheResp = await sb.rpc("get_estadistica_madre_cache");
+      if (!cacheResp.error && Array.isArray(cacheResp.data) && cacheResp.data.length > 0) {
+        var cByCod = {};
+        var cProj = {};
+        var cYms = {};
+        var cCalcAt = null;
+        cacheResp.data.forEach(function (r) {
+          var k = String(r.cod || "").trim().toUpperCase();
+          if (!k) return;
+          var prod = productByCod[k];
+          var meses = r.meses || {}; // jsonb { "2025-01": unidades, ... }
+          var byYm = {};
+          var total = 0;
+          Object.keys(meses).forEach(function (ym) {
+            if (!/^\d{4}-\d{2}$/.test(ym)) return;
+            var u = Number(meses[ym]) || 0;
+            byYm[ym] = u;
+            total += u;
+            cYms[ym] = true;
+          });
+          cByCod[k] = {
+            cod: prod ? prod.cod : (r.cod || k),
+            desc: prod ? prod.desc : (r.descripcion || k),
+            familia: prod ? prod.familia : (r.familia || "—"),
+            totalUnits: total,
+            byYm: byYm,
+          };
+          cProj[k] = Number(r.proy_uni_mes) || 0;
+          if (!cCalcAt && r.calculado_at) cCalcAt = r.calculado_at;
+        });
+        if (Object.keys(cByCod).length > 0) {
+          _estMadreFullByCod = cByCod;
+          _estMadreFullYms = Object.keys(cYms).sort(); // asc
+          _estMadreFullProjByItem = cProj;
+          _estMadreSource = "caché materializada";
+          _estMadreSourceHasCustomer = true;
+          _estMadreLoadedAt = cCalcAt ? new Date(cCalcAt) : new Date();
+          console.log("[estMadre] caché materializada:", Object.keys(cByCod).length, "artículos");
+          aplicarRangoEstadisticaMadre();
+          return; // listo — no bajamos por-cliente ni recalculamos en JS
+        }
+      }
+    } catch (cacheErr) {
+      console.warn("[estMadre] caché no disponible, uso cascade en vivo:", cacheErr.message);
+    }
 
     // 2) Cargar TODAS las fuentes en cascada — primer éxito gana.
     // Orden: customer-aware primero (necesario para proyección por cliente).
@@ -7459,7 +7749,7 @@ async function mostrarDetalleVentaMadre(cellEl) {
     var clientesChef = rows.filter(_isChef).length;
 
     // Badge "L" (vía Chef) — se inserta al lado del cod_cliente de cada fila Chef
-    var CHEF_BADGE = '<span title="Vía Chef (artículo Tierra Nativa revendido)" style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:5px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">TN</span>';
+    var CHEF_BADGE = '<span title="Vía Chef (artículo Loekemeyer revendido)" style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:5px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">L</span>';
 
     // ---- Header summary ----
     var summary =
