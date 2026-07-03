@@ -1,12 +1,15 @@
 // ================= SUPABASE =================
 const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_b4ua15HoSbe8o5SHsbJxWw_fvZFUdxv";
+const SUPABASE_ANON_KEY =
+  "sb_publishable_b4ua15HoSbe8o5SHsbJxWw_fvZFUdxv";
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ================= IMÁGENES =================
+// Endpoint /render/image/public/ requiere image transformations (no habilitado en el tenant).
+// /object/public/ sirve la imagen directo. Las fotos ya están en 400x400 WebP.
 const BASE_IMG = `${SUPABASE_URL}/storage/v1/object/public/products-images/`;
-const IMG_VERSION = "1";
+const IMG_PARAMS = ``;
 
 // ================= CATALOGO ACTIVO =================
 let CATALOGO_CODES = new Set();
@@ -14,7 +17,7 @@ let CATALOGO_CODES = new Set();
 function imgUrlByCod(cod) {
   const c = String(cod || "").trim();
   if (!c) return "img/no-image.jpg";
-  return `${BASE_IMG}${encodeURIComponent(c)}.jpg?v=${encodeURIComponent(IMG_VERSION)}`;
+  return `${BASE_IMG}${encodeURIComponent(c)}.webp${IMG_PARAMS}`;
 }
 
 // helpers
@@ -40,7 +43,7 @@ async function getSession() {
 
   if (!data?.session) {
     setStatus("No hay sesión iniciada. Volviendo a Mayorista…");
-    setTimeout(() => (location.href = "./mayorista.html"), 800);
+    setTimeout(() => (location.href = "/mayorista"), 800);
     return null;
   }
 
@@ -81,11 +84,9 @@ async function getCliente(session) {
 async function getHistory(codCliente) {
   const cc = String(codCliente).trim();
 
-  const { data, error } = await sb
-    .from("v_customer_item_month")
-    .select("customer_code, ym, item_code, description, boxes")
-    .eq("customer_code", cc)
-    .order("ym", { ascending: false });
+  const { data, error } = await sb.rpc("get_customer_history", {
+    p_cod_cliente: cc,
+  });
 
   if (error) {
     console.error("getHistory error:", error);
@@ -93,7 +94,9 @@ async function getHistory(codCliente) {
     return [];
   }
 
-  return data || [];
+  const rows = data || [];
+  rows.sort((a, b) => String(b.ym || "").localeCompare(String(a.ym || "")));
+  return rows;
 }
 
 async function getCatalogCodes() {
@@ -108,14 +111,23 @@ async function getCatalogCodes() {
   }
 
   return new Set(
-    (data || [])
-      .map((r) => String(r.cod || "").trim())
-      .filter(Boolean),
+    (data || []).map((r) => String(r.cod || "").trim()).filter(Boolean),
   );
 }
 
+// Artículos excluidos del historial (los códigos de LK no aplican a Tierra Nativa)
+const EXCLUDED_CODES = new Set([]);
+
 function renderTabla(rows) {
   if (!rows || !rows.length) {
+    setStatus("Sin datos");
+    return;
+  }
+
+  // Filtrar artículos excluidos
+  rows = rows.filter((r) => !EXCLUDED_CODES.has((r.item_code || "").trim()));
+
+  if (!rows.length) {
     setStatus("Sin datos");
     return;
   }
@@ -167,11 +179,51 @@ function renderTabla(rows) {
     }))
     .sort((a, b) => b.total - a.total);
 
-  // 3) Header
+  // 3) Header — fila de AÑO + fila de MES
+
   thead.innerHTML = "";
+
+  // --- Fila de año (colspan por grupo) ---
+  const trYear = document.createElement("tr");
+
+  // 5 columnas fijas vacías (Cod, Desc, Foto, Total, Pedido)
+  for (let i = 0; i < 5; i++) {
+    const th = document.createElement("th");
+    th.className = "year-empty";
+    if (i === 0) th.rowSpan = 1;
+    trYear.appendChild(th);
+  }
+
+  // Agrupar meses consecutivos por año
+  const yearGroups = [];
+  let curYear = null;
+  let curCount = 0;
+  for (const ym of meses60) {
+    const y = ym.slice(0, 4);
+    if (y === curYear) {
+      curCount++;
+    } else {
+      if (curYear !== null) yearGroups.push({ year: curYear, span: curCount });
+      curYear = y;
+      curCount = 1;
+    }
+  }
+  if (curYear !== null) yearGroups.push({ year: curYear, span: curCount });
+
+  for (const g of yearGroups) {
+    const th = document.createElement("th");
+    th.className = "year-th";
+    th.colSpan = g.span;
+    th.innerText = g.year;
+    trYear.appendChild(th);
+  }
+
+  thead.appendChild(trYear);
+
+  // --- Fila de meses ---
   const trh = document.createElement("tr");
 
-  ["Cod", "Descripción", "Total", "Pedido"].forEach((t) => {
+  ["Cod", "Descripción", "Imagen", "Total", "Pedido"].forEach((t) => {
     const th = document.createElement("th");
     th.innerText = t;
     trh.appendChild(th);
@@ -189,7 +241,8 @@ function renderTabla(rows) {
       .toLowerCase();
 
     const th = document.createElement("th");
-    th.innerText = `${nombre}-${String(y).slice(2)}`;
+    th.className = "mes-th";
+    th.innerText = nombre;
     trh.appendChild(th);
   });
 
@@ -209,6 +262,20 @@ function renderTabla(rows) {
     tdDesc.innerText = p.desc;
     tdDesc.className = "desc";
     tr.appendChild(tdDesc);
+
+    const tdFoto = document.createElement("td");
+    const img = document.createElement("img");
+    img.src = imgUrlByCod(p.cod);
+    img.alt = p.desc || p.cod;
+    img.width = 400;
+    img.height = 400;
+    img.loading = "lazy";
+    img.className = "h-img-mini";
+    img.onerror = function () {
+      this.style.display = "none";
+    };
+    tdFoto.appendChild(img);
+    tr.appendChild(tdFoto);
 
     const tdTotal = document.createElement("td");
     tdTotal.innerText = p.total;
@@ -243,7 +310,8 @@ function renderTabla(rows) {
 
     meses60.forEach((ym) => {
       const td = document.createElement("td");
-      td.innerText = p.meses[ym] ? String(p.meses[ym]) : "";
+      const val = p.meses[ym] ? String(p.meses[ym]) : "";
+      td.innerText = val;
       tr.appendChild(td);
     });
 
@@ -256,8 +324,80 @@ function renderTabla(rows) {
   tabla.style.width = "max-content";
   tabla.style.minWidth = "100%";
 
-  const scrollParent = tabla.parentElement || document.body;
-  scrollParent.style.overflowX = "auto";
+  // Sync dual scroll width
+  const topInner = document.getElementById("scrollTopInner");
+  if (topInner) topInner.style.width = tabla.scrollWidth + "px";
+}
+
+// Trae los clientes linkeados al vendedor (igual lógica que mayorista)
+async function loadLinkedCustomersHistorial() {
+  try {
+    const [vendorRes, groupRes] = await Promise.all([
+      sb.rpc("get_my_linked_customers"),
+      sb.rpc("get_my_group_customers"),
+    ]);
+    const vendorList = vendorRes.error ? [] : vendorRes.data || [];
+    const groupList = groupRes.error ? [] : groupRes.data || [];
+    const seen = {};
+    const merged = [];
+    vendorList.forEach((c) => {
+      if (!seen[c.customer_id]) {
+        seen[c.customer_id] = true;
+        merged.push(c);
+      }
+    });
+    groupList.forEach((c) => {
+      if (!seen[c.customer_id]) {
+        seen[c.customer_id] = true;
+        merged.push(c);
+      }
+    });
+    return merged;
+  } catch (e) {
+    console.error("loadLinkedCustomersHistorial error:", e);
+    return [];
+  }
+}
+
+function renderClienteSelectorHistorial(linked, currentCod, onChangeClient) {
+  const old = document.getElementById("hist-cliente-selector");
+  if (old) old.remove();
+  if (!linked || !linked.length) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "hist-cliente-selector";
+  wrap.className = "hist-cliente-selector";
+
+  const label = document.createElement("label");
+  label.setAttribute("for", "histClienteSelect");
+  label.textContent = "Ver historial de:";
+  label.className = "hist-cliente-label";
+
+  const sel = document.createElement("select");
+  sel.id = "histClienteSelect";
+  sel.className = "hist-cliente-select";
+
+  linked.forEach((c) => {
+    const opt = document.createElement("option");
+    opt.value = String(c.cod_cliente);
+    opt.textContent = `${c.business_name} (${c.cod_cliente})`;
+    if (String(c.cod_cliente) === String(currentCod)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  sel.addEventListener("change", () => {
+    const match = linked.find((c) => String(c.cod_cliente) === sel.value);
+    if (!match) return;
+    onChangeClient(match);
+  });
+
+  wrap.appendChild(label);
+  wrap.appendChild(sel);
+
+  const clienteDiv = document.getElementById("cliente");
+  if (clienteDiv && clienteDiv.parentNode) {
+    clienteDiv.parentNode.insertBefore(wrap, clienteDiv);
+  }
 }
 
 async function init() {
@@ -266,8 +406,106 @@ async function init() {
     const session = await getSession();
     if (!session) return;
 
-    const cliente = await getCliente(session);
-    if (!cliente) return;
+    // ADMIN OVERRIDE: si la URL tiene ?cod=X (uso desde panel admin via
+    // iframe), tiene prioridad sobre cualquier otra detección de cliente.
+    const adminCod = (() => {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        return (p.get("cod") || "").trim();
+      } catch (e) {
+        return "";
+      }
+    })();
+    console.log("[historial] adminCod from URL:", adminCod || "(none)");
+
+    // FAST PATH: admin override — NO leer linked customers, NO LS, NO selector
+    if (adminCod) {
+      // Marca el body para que CSS pueda ocultar elementos no deseados en
+      // contexto admin embed (botón Volver a productos, info-box, etc.)
+      document.body.classList.add("lk-admin-embed");
+      let businessName = "";
+      try {
+        const r = await sb
+          .from("customers")
+          .select("business_name")
+          .eq("cod_cliente", adminCod)
+          .maybeSingle();
+        if (r && r.data) businessName = r.data.business_name || "";
+      } catch (e) {
+        console.warn("admin override: fetch business_name failed", e);
+      }
+      const cliente = {
+        cod_cliente: adminCod,
+        business_name: businessName,
+      };
+      console.log("[historial] ADMIN MODE — cliente:", cliente);
+
+      $("cliente").innerText =
+        `Cliente: ${cliente.business_name || "(sin nombre)"} (${cliente.cod_cliente})`;
+
+      CATALOGO_CODES = await getCatalogCodes();
+
+      const rows = await getHistory(cliente.cod_cliente);
+      console.log("[historial] rows for cod " + cliente.cod_cliente + ":", rows.length);
+      await renderTabla(rows);
+      return; // no renderizamos selector ni nada más
+    }
+
+    const linked = await loadLinkedCustomersHistorial();
+
+    // If a vendor has selected a client, use that client instead
+    const vendorSelectedCod = (() => {
+      try {
+        return (
+          localStorage.getItem("lk_vendor_selected_cod_cliente") || ""
+        ).trim();
+      } catch (e) {
+        return "";
+      }
+    })();
+    let vendorSelectedName = (() => {
+      try {
+        return (
+          localStorage.getItem("lk_vendor_selected_business_name") || ""
+        ).trim();
+      } catch (e) {
+        return "";
+      }
+    })();
+
+    let cliente;
+    if (vendorSelectedCod) {
+      cliente = {
+        cod_cliente: vendorSelectedCod,
+        business_name: vendorSelectedName,
+      };
+    } else if (linked && linked.length) {
+      // Vendedor / grupo sin cliente pre-seleccionado: usar el primero vinculado
+      const first = linked[0];
+      cliente = {
+        cod_cliente: String(first.cod_cliente || "").trim(),
+        business_name: first.business_name || "",
+      };
+      try {
+        localStorage.setItem(
+          "lk_vendor_selected_cod_cliente",
+          cliente.cod_cliente,
+        );
+        localStorage.setItem(
+          "lk_vendor_selected_business_name",
+          cliente.business_name,
+        );
+        if (first.dto_vol != null) {
+          localStorage.setItem(
+            "lk_vendor_selected_dto_vol",
+            String(first.dto_vol),
+          );
+        }
+      } catch (e) {}
+    } else {
+      cliente = await getCliente(session);
+      if (!cliente) return;
+    }
 
     $("cliente").innerText =
       `Cliente: ${cliente.business_name} (${cliente.cod_cliente})`;
@@ -276,6 +514,38 @@ async function init() {
 
     const rows = await getHistory(cliente.cod_cliente);
     await renderTabla(rows);
+
+    renderClienteSelectorHistorial(
+      linked,
+      cliente.cod_cliente,
+      async (newClient) => {
+        cliente = {
+          cod_cliente: newClient.cod_cliente,
+          business_name: newClient.business_name,
+        };
+        try {
+          localStorage.setItem(
+            "lk_vendor_selected_cod_cliente",
+            String(newClient.cod_cliente || ""),
+          );
+          localStorage.setItem(
+            "lk_vendor_selected_business_name",
+            newClient.business_name || "",
+          );
+          if (newClient.dto_vol != null) {
+            localStorage.setItem(
+              "lk_vendor_selected_dto_vol",
+              String(newClient.dto_vol),
+            );
+          }
+        } catch (e) {}
+        $("cliente").innerText =
+          `Cliente: ${cliente.business_name} (${cliente.cod_cliente})`;
+        setStatus("Cargando...");
+        const rows2 = await getHistory(cliente.cod_cliente);
+        await renderTabla(rows2);
+      },
+    );
   } catch (e) {
     console.error("Init crash:", e);
     setStatus("Error inesperado cargando historial. Ver consola.");
@@ -313,6 +583,25 @@ window.hInc = function (cod) {
   el.value = Math.max(0, (parseInt(el.value, 10) || 0) + 1);
 };
 
+// Registra en background el click de "Volver a pedir" desde Historial
+// (misma tabla que usa mayorista.html para medir uso por módulo). Acá solo
+// tenemos el código de producto (no el id), se guarda en product_cod.
+function logCartAddEventHist(cod) {
+  sb.auth
+    .getSession()
+    .then(({ data }) => {
+      const session = data && data.session;
+      if (!session) return;
+      return sb.from("cart_add_events").insert({
+        customer_id: null,
+        auth_user_id: session.user.id,
+        product_cod: cod,
+        source: "historial",
+      });
+    })
+    .catch(() => {});
+}
+
 window.hAdd = function (cod) {
   const code = String(cod).trim();
 
@@ -331,6 +620,7 @@ window.hAdd = function (cod) {
   else list.push({ cod: code, qty });
 
   writePendingAdds(list);
+  logCartAddEventHist(code);
 
   const btn = document.getElementById(`hadd-${code}`);
   if (btn) {
