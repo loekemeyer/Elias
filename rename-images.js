@@ -1,6 +1,8 @@
 /**
  * rename-images.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Renombra todas las imágenes numeradas en Supabase Storage +1
  * (1.jpg → 2.jpg, 2.jpg → 3.jpg, etc.)
  * y actualiza la columna `images` en la tabla products.
@@ -10,16 +12,13 @@
  *   node rename-images.js --run    ← ejecuta los cambios reales
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
 const BUCKET = "products-images";
 
 const DRY_RUN = !process.argv.includes("--run");
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 function getBase(filename) {
   const dot = filename.lastIndexOf(".");

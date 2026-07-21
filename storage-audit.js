@@ -1,18 +1,16 @@
 /**
  * storage-audit.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Lista TODOS los buckets de Supabase y el peso de cada uno.
  *
  * Uso: node storage-audit.js
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;

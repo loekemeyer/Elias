@@ -1,0 +1,90 @@
+LINEA BASE DE fichaje_* — DATA-04
+Produccion zjvpzqhbekxnwxdczpof, capturado 2026-07-21, MCP en --read-only
+
+Este archivo es la PRUEBA de DATA-04, no una promesa. El Plan 03-06
+re-ejecuta exactamente las mismas queries y compara. Cualquier diferencia
+significa que la Phase 3 toco algo que no debia.
+
+=====================================================================
+-- RPCs
+=====================================================================
+
+  total RPC fichaje_*        34
+  de ellas SECURITY DEFINER  32
+  huella global (md5)        740ef7ae109a3df76edbd8c196810b7c
+
+CORRECCION A LA LINEA BASE DECLARADA: el briefing de planificacion decia
+37 RPCs. El conteo real es 34. Se usa 34 como linea base, tal como el
+Plan 03-01 indica ("si no son 37, registrar el numero real y usar ESE").
+
+La huella global es md5 del string_agg de los md5 de cada
+pg_get_functiondef, ordenado por firma. Detecta:
+  - una funcion agregada o eliminada
+  - un CREATE OR REPLACE que cambie el cuerpo aunque conserve la firma
+  - un cambio de search_path o de SECURITY DEFINER
+
+Query para reproducir en el Plan 03-06 (debe dar identico):
+
+  SELECT count(*) AS total_rpcs_fichaje,
+         count(*) FILTER (WHERE prosecdef) AS security_definer,
+         md5(string_agg(md5(pg_get_functiondef(p.oid)), '|'
+             ORDER BY p.oid::regprocedure::text)) AS huella_global
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.proname LIKE 'fichaje%';
+
+=====================================================================
+-- TABLAS
+=====================================================================
+
+  relname                  n_cols   rls    n_policies
+  fichaje_config              2     true       0
+  fichaje_empleados           5     true       0
+  fichaje_fichadas            9     true       0
+  fichaje_show_asignados      2     true       0
+  fichaje_show_prep           2     true       0
+  fichaje_shows               7     true       0
+
+OBSERVACION: las 6 tablas tienen RLS habilitado y CERO policies. No es un
+descuido: es el patron cerrado correcto. Sin policies, RLS niega todo
+acceso directo, y el unico camino son las 32 RPC SECURITY DEFINER, que
+validan con fichaje_exigir_admin / fichaje_es_admin.
+
+Es el mismo patron que admin_otp_codes. Contrasta favorablemente con las
+7 RPC de DATA-02, que son SECURITY DEFINER sin ninguna validacion.
+
+=====================================================================
+-- SMOKE FUNCIONAL
+=====================================================================
+
+  fichaje_nombres()          1 fila
+  fichaje_ajustes()          1 fila
+  fichaje_shows_activos()    0 filas
+
+Las tres responden sin error. Se registra el CONTEO, no el contenido:
+fichaje_nombres() devuelve nombres de empleados reales y este archivo se
+versiona en git. El conteo prueba DATA-04 igual de bien (T-03-02 del
+threat model del Plan 03-01).
+
+fichaje_shows_activos() devolviendo 0 filas NO es un error: no hay shows
+activos cargados. Lo que importa es que la funcion responda, y responde.
+
+Query para reproducir en el Plan 03-06:
+
+  select 'fichaje_nombres' AS rpc, count(*) from fichaje_nombres()
+  union all select 'fichaje_ajustes', count(*) from fichaje_ajustes()
+  union all select 'fichaje_shows_activos', count(*) from fichaje_shows_activos();
+
+=====================================================================
+-- CRITERIO DE CIERRE DE DATA-04
+=====================================================================
+
+Despues de los Planes 04 y 05, DATA-04 se cumple si y solo si:
+
+  1. total_rpcs_fichaje == 34
+  2. security_definer   == 32
+  3. huella_global      == 740ef7ae109a3df76edbd8c196810b7c
+  4. las 6 tablas conservan n_cols, rls=true y n_policies=0
+  5. las 3 RPC del smoke responden con los mismos conteos
+
+Si la huella global cambia pero el conteo no, hubo un CREATE OR REPLACE
+accidental: comparar funcion por funcion para aislar cual.

@@ -1,6 +1,8 @@
 /**
  * compress-75kb.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Comprime todas las imágenes que pesen más de 75 KB hasta que estén
  * por debajo de ese tope. Baja la calidad progresivamente y como último
  * recurso reduce las dimensiones, manteniendo la mejor calidad posible.
@@ -10,17 +12,14 @@
  *   node compress-75kb.js --run    ← ejecuta los cambios reales
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 const sharp = require("sharp");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
 const BUCKET = "products-images";
 const MAX_SIZE = 75 * 1024; // 75 KB en bytes
 
 const DRY_RUN = !process.argv.includes("--run");
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;

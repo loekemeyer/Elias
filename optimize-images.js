@@ -1,6 +1,8 @@
 /**
  * optimize-images.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Descarga todas las imágenes de Supabase Storage, las convierte a WebP
  * con calidad 80 y las re-sube. Actualiza la columna `images` en products
  * si el path cambió (ej: 1.jpg → 1.webp).
@@ -13,18 +15,15 @@
  *   npm install @supabase/supabase-js sharp
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 const sharp = require("sharp");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
 const BUCKET = "products-images";
 const WEBP_QUALITY = 80;
 
 const DRY_RUN = !process.argv.includes("--run");
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 const IMAGE_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"]);
 

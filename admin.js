@@ -1,8 +1,8 @@
-﻿"use strict";
+"use strict";
 
 var SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
 var SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjUyOTksImV4cCI6MjA4OTYwMTI5OX0.CixhYyxrmXPB_a-Vfn4xNq5KQvhWtzTD0fEqITob62Q";
+  "sb_publishable_b4ua15HoSbe8o5SHsbJxWw_fvZFUdxv";
 var TABLE_CUSTOMERS = "customers";
 var TABLE_ADDRESSES = "customer_delivery_addresses";
 
@@ -55,17 +55,64 @@ async function checkAuth() {
     if (cruceDet) cruceDet.style.display = "none";
   }
   document.getElementById("loadingScreen").style.display = "none";
-  // 2FA por email — COMENTADO: el mail destino no existe todavía. Reactivar cuando se configure.
-  // if (isPPPAdmin) {
-  //   var otpOk = await ensureEmailOtp();
-  //   if (!otpOk) return false;
-  // }
+  // 2FA por email solo se exige al admin PPP (CUIT 30-51584245-0). Resto entra directo.
+  if (isPPPAdmin) {
+    var otpOk = await ensureEmailOtp();
+    if (!otpOk) return false;
+  }
   document.getElementById("appShell").style.display = "flex";
   return true;
 }
 
+// checkAuth() corre una sola vez al cargar. Si el tab queda abierto y el access
+// token vence sin que el auto-refresh llegue a correr (maquina suspendida, red
+// caida), los requests siguen saliendo pero como rol anon: las tablas con policy
+// anon (products) se leen igual y las admin-only (customers, loke_products)
+// devuelven 0 filas SIN error. El panel entonces miente — muestra "cliente no
+// encontrado" o "item sin LK" en vez de "estas deslogueado". Este watcher corta
+// eso avisando apenas la sesion muere.
+var _sessionDead = false;
+function watchSession() {
+  if (!sb.auth.onAuthStateChange) return;
+  sb.auth.onAuthStateChange(function (event, session) {
+    if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+      if (_sessionDead) return;
+      _sessionDead = true;
+      toast(
+        "Sesion vencida. Recarga la pagina (F5) — hasta entonces los datos pueden verse incompletos.",
+        "error",
+      );
+    } else if (session) {
+      _sessionDead = false;
+    }
+  });
+}
+
+// true si hay sesion viva con permisos de admin. Usado por modulos que leen
+// tablas admin-only y necesitan distinguir "sin permiso" de "no existe".
+// getSession() refresca el token solo si puede, asi que esto ademas repara
+// sesiones recuperables antes de contestar.
+async function hasLiveAdminSession() {
+  var r = await sb.auth.getSession();
+  var session = r && r.data ? r.data.session : null;
+  if (!session) return false;
+  var expMs = Number(session.expires_at || 0) * 1000;
+  if (expMs && expMs <= Date.now()) return false;
+  var a = await sb
+    .from("admins")
+    .select("auth_user_id")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle();
+  return !a.error && !!a.data;
+}
+window.hasLiveAdminSession = hasLiveAdminSession;
+
 // ---- 2FA por email (solo PPP admin) ----
-var EMAIL_OTP_RECIPIENT_DISPLAY = "admin@tierranativa";
+// OJO: esto es SOLO la etiqueta que se muestra en la pantalla del 2FA.
+// El destinatario real esta hardcodeado en la edge function admin-otp
+// (RECIPIENT_EMAIL, ver supabase/functions/admin-otp/index.ts). Cambiar
+// esta constante sin redesplegar la funcion hace que la UI mienta.
+var EMAIL_OTP_RECIPIENT_DISPLAY = "tierranativ@hotmail.com";
 
 async function ensureEmailOtp() {
   // sessionStorage por tab: si ya verificó esta sesión de browser, no pide de nuevo
@@ -624,8 +671,66 @@ document.querySelectorAll(".nav-item").forEach(function (btn) {
     ) {
       cargarRegistroEnvios();
     }
+    if (
+      btn.dataset.page === "origen-pedidos" &&
+      typeof cargarOrigenPedidos === "function"
+    ) {
+      cargarOrigenPedidos();
+    }
+    if (
+      btn.dataset.page === "uso-modulos" &&
+      typeof cargarUsoModulos === "function"
+    ) {
+      cargarUsoModulos();
+    }
   });
 });
+
+var origenPedidosRefreshBtn = document.getElementById(
+  "origenPedidosRefreshBtn",
+);
+if (origenPedidosRefreshBtn) {
+  origenPedidosRefreshBtn.addEventListener("click", cargarOrigenPedidos);
+}
+
+["origenPedidosDesde", "origenPedidosHasta"].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener("change", cargarOrigenPedidos);
+});
+
+var origenPedidosLimpiarBtn = document.getElementById(
+  "origenPedidosLimpiarBtn",
+);
+if (origenPedidosLimpiarBtn) {
+  origenPedidosLimpiarBtn.addEventListener("click", function () {
+    var desde = document.getElementById("origenPedidosDesde");
+    var hasta = document.getElementById("origenPedidosHasta");
+    if (desde) desde.value = "";
+    if (hasta) hasta.value = "";
+    cargarOrigenPedidos();
+  });
+}
+
+var usoModulosRefreshBtn = document.getElementById("usoModulosRefreshBtn");
+if (usoModulosRefreshBtn) {
+  usoModulosRefreshBtn.addEventListener("click", cargarUsoModulos);
+}
+
+["usoModulosDesde", "usoModulosHasta"].forEach(function (id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener("change", cargarUsoModulos);
+});
+
+var usoModulosLimpiarBtn = document.getElementById("usoModulosLimpiarBtn");
+if (usoModulosLimpiarBtn) {
+  usoModulosLimpiarBtn.addEventListener("click", function () {
+    var desde = document.getElementById("usoModulosDesde");
+    var hasta = document.getElementById("usoModulosHasta");
+    if (desde) desde.value = "";
+    if (hasta) hasta.value = "";
+    cargarUsoModulos();
+  });
+}
 
 // ---- GROUP TOGGLES (modulos colapsables) ----
 document.querySelectorAll(".nav-group-toggle").forEach(function (toggle) {
@@ -2367,7 +2472,7 @@ async function notifyPendingPPPMismatches() {
   if (!pending.length) return;
 
   var FN_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/notify-m3-mismatch";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/notify-m3-mismatch";
   for (var i = 0; i < pending.length; i++) {
     var p = pending[i];
     try {
@@ -2693,9 +2798,9 @@ var BASE_IMG = SUPABASE_URL + "/storage/v1/object/public/products-images/";
 var BASE_FLYER = SUPABASE_URL + "/storage/v1/object/public/flyers/";
 
 var CP_SHEETS_PROXY_URL =
-  "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+  "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-proxy";
 var CP_SHEETS_ENTREGAS_PROXY_URL =
-  "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+  "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-entregas-proxy";
 var CP_WEB_DISCOUNT = 0.02;
 // Cliente especial con lista propia (Lista 30 - Lista GM). Sin descuentos.
 var CP_GM_COD_CLIENTE = "4080";
@@ -2999,7 +3104,7 @@ function cpParseExcelTotal(raw) {
 // Se sustituye el string ANTES de cpFindProduct, así 029/030 (hoy inactivos /
 // "NO ENCONTRADO") resuelven a 437E/438E activos.
 var CP_CODE_SUBSTITUTIONS = {
-  "565": { cod: "607E", factor: 1 },
+  // "565": { cod: "607E", factor: 1 }, // DESACTIVADO 2026-07-02: hay stock de 565, se carga 565. Reactivar cuando no haya stock.
   "323": { cod: "323E", factor: 1 },
   "548": { cod: "590E", factor: 2 },
   "029": { cod: "437E", factor: 1 },
@@ -3134,6 +3239,318 @@ function cpParseItemsGM(raw) {
 }
 
 // =====================================================
+// ---- PDF DE ORDEN DE COMPRA (Cargar Cotizadores) ----
+// =====================================================
+// Cliente elegido manualmente (buscador). El PDF (formato "PEDIDO DE
+// COTIZACION" / Planexware, ej MESSINA) trae por item: codigo proveedor (= cod
+// LK), codigo de barra (EAN 13), y cantidad EN UNIDADES. cajas = unidades / uxb.
+// El metodo de pago NO viene en el PDF: se setea con un dropdown en la card
+// (default Echeq 120 = 0% dto). El resto del flujo (precio lista - dtos, submit)
+// es identico al del Excel.
+
+// El proveedor puede mandar el codigo con o sin "E" final (ej "960" vs "960E").
+// Devuelve variantes a probar: exacta primero, la otra como fallback.
+function cpEVariants(cod) {
+  var c = String(cod || "").trim().toUpperCase();
+  if (!c) return [];
+  if (/E$/.test(c)) return [c, c.slice(0, -1)];
+  return [c, c + "E"];
+}
+
+// Condicion de pago declarada en el PDF ("Cond.Compra : 22 CUENTA CORRIENTE.
+// 15 DIAS FF"). Devuelve { raw, days } o null. days = 0 si dice "contado".
+function cpParsePdfPayment(lines) {
+  for (var i = 0; i < lines.length; i++) {
+    var m = lines[i].match(/Cond\.?\s*Compra\s*:?\s*(.+)/i);
+    if (m && m[1].trim()) {
+      var raw = m[1].trim();
+      return { raw: raw, days: cpDaysFromText(raw) };
+    }
+  }
+  return null;
+}
+function cpDaysFromText(t) {
+  if (!t) return null;
+  if (/contado/i.test(t)) return 0;
+  var m = String(t).match(/(\d+)\s*d[ií]as/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+// Mapea dias de plazo al metodo de pago (columna de CP_PAYMENT_MAP) mas cercano.
+// Sin dato => Echeq 120 (col 9, 0% dto).
+function cpPayColFromDays(days) {
+  if (days == null) return 9;
+  if (days <= 0) return 4; // Contado
+  if (days <= 30) return 5; // Transferencia 15-30 dias
+  if (days <= 45) return 6; // Transferencia 31-45 dias
+  if (days <= 60) return 7; // Transferencia 46-60 dias
+  if (days <= 90) return 8; // Echeq 90 dias
+  return 9; // Echeq 120 dias
+}
+
+// Parse numerico tolerante AR/US para los numeros del PDF.
+function cpPdfNum(s) {
+  if (s == null) return 0;
+  var t = String(s).trim().replace(/[^0-9.,\-]/g, "");
+  if (!t) return 0;
+  var hasDot = t.indexOf(".") !== -1;
+  var hasComma = t.indexOf(",") !== -1;
+  var n;
+  if (hasDot && hasComma) {
+    if (t.lastIndexOf(",") > t.lastIndexOf(".")) {
+      n = parseFloat(t.replace(/\./g, "").replace(",", "."));
+    } else {
+      n = parseFloat(t.replace(/,/g, ""));
+    }
+  } else if (hasComma) {
+    n = parseFloat(t.replace(/\./g, "").replace(",", "."));
+  } else {
+    n = parseFloat(t);
+  }
+  return isNaN(n) ? 0 : n;
+}
+
+// Extrae texto del PDF con pdf.js, agrupando por coordenada Y (una fila visual =
+// una linea). Mismo enfoque que admin-supercot.js.
+async function cpExtractPdfText(data) {
+  var pdf = await window.pdfjsLib.getDocument({ data: data }).promise;
+  var allLines = [];
+  for (var p = 1; p <= pdf.numPages; p++) {
+    var page = await pdf.getPage(p);
+    var content = await page.getTextContent();
+    var rows = {};
+    content.items.forEach(function (it) {
+      var y = Math.round(it.transform[5]);
+      var key = null;
+      Object.keys(rows).forEach(function (k) {
+        if (key == null && Math.abs(Number(k) - y) <= 1) key = k;
+      });
+      if (key == null) {
+        rows[y] = [];
+        key = y;
+      }
+      rows[key].push({ x: it.transform[4], str: it.str });
+    });
+    var keys = Object.keys(rows)
+      .map(Number)
+      .sort(function (a, b) {
+        return b - a;
+      });
+    keys.forEach(function (k) {
+      var row = rows[k].sort(function (a, b) {
+        return a.x - b.x;
+      });
+      var line = row
+        .map(function (r) {
+          return r.str;
+        })
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (line) allLines.push(line);
+    });
+  }
+  return allLines.join("\n");
+}
+
+// Sucursal / deposito de entrega declarado en el PDF (solo informativo; el admin
+// elige la sucursal real al confirmar).
+function cpParsePdfDelivery(lines) {
+  for (var i = 0; i < lines.length; i++) {
+    var m = lines[i].match(/Dep[oó]sito\s*Entrega:?\s*(.*)/i);
+    if (!m) continue;
+    var same = (m[1] || "").trim();
+    if (same) return same;
+    for (var j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+      var v = (lines[j] || "").trim();
+      if (v) return v;
+    }
+  }
+  return "";
+}
+
+// Subtotal declarado en el PDF (informativo).
+function cpParsePdfSubtotal(lines) {
+  for (var i = 0; i < lines.length; i++) {
+    var m = lines[i].match(/Subtotal\s*:?\s*\$?\s*([\d.,]+)/i);
+    if (m) {
+      var v = cpPdfNum(m[1]);
+      if (v > 0) return v;
+    }
+  }
+  return null;
+}
+
+// Parsea items del PDF. Para cada linea con EAN de 13 digitos:
+//  - cod proveedor = token inmediatamente antes del EAN (fallback EAN[9..12])
+//  - uxb = "Caja x N" de la linea (fallback product.uxb)
+//  - cantidad EN UNIDADES = primer numero despues del EAN
+//  - cajas = cantidad / uxb (debe ser entero: descarta lineas sin pedido, donde
+//    el primer numero es en realidad el precio unitario)
+function cpParsePdfItems(text) {
+  var lines = String(text || "")
+    .split(/\n/)
+    .map(function (l) {
+      return l.trim();
+    })
+    .filter(Boolean);
+  var items = [];
+  var seen = {};
+  var EAN_RE = /\b(\d{13})\b/;
+
+  lines.forEach(function (line) {
+    var m = line.match(EAN_RE);
+    if (!m) return;
+    var ean = m[1];
+    var eanIdx = line.indexOf(ean);
+    var before = line.substring(0, eanIdx).trim();
+    var after = line.substring(eanIdx + ean.length).trim();
+
+    var beforeTokens = before ? before.split(/\s+/) : [];
+    var codToken = beforeTokens.length
+      ? beforeTokens[beforeTokens.length - 1]
+      : "";
+    var uxbM = before.match(/Caja\s*x\s*(\d+)/i);
+    var uxbPdf = uxbM ? parseInt(uxbM[1], 10) : 0;
+
+    var afterNums = after.match(/[\d.,]+/g) || [];
+    if (!afterNums.length) return;
+    var cantidad = cpPdfNum(afterNums[0]);
+    if (!(cantidad > 0) || cantidad % 1 !== 0) return; // no entero => linea sin pedido
+
+    // Resolver producto: cod proveedor (con/sin "E"), luego EAN[9..12] (con/sin "E")
+    var bases = [];
+    if (codToken && /[0-9]/.test(codToken)) bases.push(codToken);
+    bases.push(ean.substring(9, 12));
+    var candidates = [];
+    bases.forEach(function (b) {
+      cpEVariants(b).forEach(function (v) {
+        if (candidates.indexOf(v) < 0) candidates.push(v);
+      });
+    });
+    var product = null;
+    var cod = candidates[0];
+    for (var i = 0; i < candidates.length; i++) {
+      var pr = cpFindProduct(candidates[i]);
+      if (pr) {
+        product = pr;
+        cod = candidates[i];
+        break;
+      }
+    }
+
+    var uxb = product ? Number(product.uxb || 0) : 0;
+    if (!uxb) uxb = uxbPdf;
+    if (!uxb) uxb = 1;
+    if (cantidad % uxb !== 0) return; // no multiplo de la caja => descartar
+    var cajas = Math.round(cantidad / uxb);
+    if (cajas <= 0) return;
+
+    // Sustitucion de codigos discontinuados (preserva unidades via factor)
+    var codOriginal = null;
+    var sub = cpSubstituteCod(cod);
+    if (sub) {
+      codOriginal = cod;
+      cod = sub.cod;
+      cajas = cajas * (sub.factor || 1);
+      product = cpFindProduct(cod) || product;
+    }
+
+    var key = cod + "|" + ean;
+    if (seen[key]) {
+      seen[key].cajas += cajas; // mismo item repetido en el PDF: acumular
+      return;
+    }
+    var item = {
+      cod: cod,
+      cod_original: codOriginal,
+      cajas: cajas,
+      product: product,
+      found: !!product,
+      description: product ? product.description : "NO ENCONTRADO",
+      uxb: product ? Number(product.uxb || 0) : uxb,
+      listPrice: product ? Number(product.list_price || 0) : 0,
+    };
+    seen[key] = item;
+    items.push(item);
+  });
+
+  return {
+    items: items,
+    delivery: cpParsePdfDelivery(lines),
+    subtotal: cpParsePdfSubtotal(lines),
+    payment: cpParsePdfPayment(lines),
+  };
+}
+
+function cpCardProcessPdfData(card, buf) {
+  if (!window.pdfjsLib) {
+    cpCardSetStatus(card, "pdf.js no disponible. Recargá la página.", "err");
+    return;
+  }
+  try {
+    if (
+      window.pdfjsLib.GlobalWorkerOptions &&
+      !window.pdfjsLib.GlobalWorkerOptions.workerSrc
+    ) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+  } catch (e) {}
+
+  cpCardSetStatus(card, "Leyendo PDF...");
+  // Clonar el buffer: pdf.js puede detach el ArrayBuffer y romper un reintento.
+  var data = buf.slice ? buf.slice(0) : buf;
+
+  cpExtractPdfText(data)
+    .then(function (text) {
+      var res = cpParsePdfItems(text);
+      if (!res.items.length) {
+        cpCardSetStatus(
+          card,
+          "No se detectaron items en el PDF (código proveedor + cantidad).",
+          "err",
+        );
+        toast("PDF sin items (Cotizador " + (card.idx + 1) + ")", "warning");
+        return;
+      }
+      card.isGM = false;
+      card.isPdf = true;
+      card.parsed = res.items.filter(function (it) {
+        return it.found;
+      });
+      card.invalid = res.items.filter(function (it) {
+        return !it.found;
+      });
+      // Metodo de pago: preseleccionado segun la condicion del PDF (dias de
+      // plazo). Si el PDF no la trae, Echeq 120 (0% dto). Editable en la card.
+      var payCol = res.payment ? cpPayColFromDays(res.payment.days) : 9;
+      card.payment = Object.assign({ col: payCol }, CP_PAYMENT_MAP[payCol]);
+      card.pdfPaymentRaw = res.payment ? res.payment.raw : "";
+      card.delivery = res.delivery || "";
+      card.excelTotal = null;
+      card.pdfSubtotal = res.subtotal || null;
+      card.historyMode = false;
+      card.selectedDeliveryIdx = null;
+
+      cpCardBuildFlyers(card);
+      cpCardRenderSummary(card);
+      cpCardRenderActions(card);
+      cpCardRenderBottomButtons(card);
+      cpCardSetStatus(card, "");
+      card.dropZone.classList.add("cp-drop-success-on");
+      card.fileInput.value = "";
+    })
+    .catch(function (e) {
+      console.error("cp pdf error:", e);
+      cpCardSetStatus(
+        card,
+        "Error procesando el PDF: " + (e.message || e),
+        "err",
+      );
+    });
+}
+
+// =====================================================
 // ---- CARDS UI ----
 // =====================================================
 
@@ -3161,7 +3578,7 @@ function cpBuildCardHTML(idx) {
     '<div class="upload-icon">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
     "</div>" +
-    '<p class="upload-title">Arrastrá el cotizador o</p>' +
+    '<p class="upload-title">Arrastrá el cotizador (Excel o PDF) o</p>' +
     '<label class="btn-primary cp-file-label" for="cpFileInput-' +
     idx +
     '">Seleccionar</label>' +
@@ -3173,7 +3590,7 @@ function cpBuildCardHTML(idx) {
     "</div>" +
     '<input type="file" class="cp-file-input" id="cpFileInput-' +
     idx +
-    '" accept=".xlsx,.xls,.csv" hidden/>' +
+    '" accept=".xlsx,.xls,.csv,.pdf" hidden/>' +
     "</div>" +
     '<div class="cp-card-status"></div>' +
     "</div>" +
@@ -3324,11 +3741,15 @@ function cpCardReset(card) {
   card.customer = null;
   card.history = { web: [], sales: [] };
   card.pendingFileData = null;
+  card.pendingFileIsPdf = false;
   card.parsed = [];
   card.invalid = [];
   card.payment = null;
   card.delivery = "";
   card.excelTotal = null;
+  card.isPdf = false;
+  card.pdfSubtotal = null;
+  card.pdfPaymentRaw = "";
   card.flyers = [];
   card.upsellMsg = "";
   card.submitted = false;
@@ -3522,6 +3943,9 @@ function cpCardClearCotizadorState(card) {
   card.payment = null;
   card.delivery = "";
   card.excelTotal = null;
+  card.isPdf = false;
+  card.pdfSubtotal = null;
+  card.pdfPaymentRaw = "";
   card.flyers = [];
   card.upsellMsg = "";
   card.pendingFileData = null;
@@ -3601,8 +4025,10 @@ async function cpCardSelectCustomer(card, c) {
 
   // Si había archivo pending, procesarlo ahora
   if (card.pendingFileData) {
-    cpCardProcessFileData(card, card.pendingFileData);
+    if (card.pendingFileIsPdf) cpCardProcessPdfData(card, card.pendingFileData);
+    else cpCardProcessFileData(card, card.pendingFileData);
     card.pendingFileData = null;
+    card.pendingFileIsPdf = false;
   }
 }
 
@@ -3719,21 +4145,25 @@ async function cpCardLoadHistory(card, c) {
 }
 
 function cpCardHandleFile(card, file) {
+  var isPdf = /\.pdf$/i.test(file.name || "") || file.type === "application/pdf";
   var reader = new FileReader();
   reader.onload = function (e) {
     var buf = e.target.result;
     if (!card.customer) {
       // Guardar y esperar a que seleccionen cliente (o procesar igual si ya eligió y solo el historial está cargando)
       card.pendingFileData = buf;
+      card.pendingFileIsPdf = isPdf;
       cpCardSetStatus(card, "Archivo cargado. Elegí un cliente para procesar.");
       return;
     }
     if (card.historyLoading) {
       card.pendingFileData = buf;
+      card.pendingFileIsPdf = isPdf;
       cpCardSetStatus(card, "Esperando historial...");
       return;
     }
-    cpCardProcessFileData(card, buf);
+    if (isPdf) cpCardProcessPdfData(card, buf);
+    else cpCardProcessFileData(card, buf);
   };
   reader.readAsArrayBuffer(file);
 }
@@ -3751,6 +4181,8 @@ function cpCardProcessFileData(card, buf) {
 
     var isGM = cpDetectGMFormat(raw);
     card.isGM = isGM;
+    card.isPdf = false;
+    card.pdfSubtotal = null;
 
     var items, payment, delivery, excelTotal;
 
@@ -4070,6 +4502,12 @@ function cpCardRenderSummary(card) {
     return;
   }
 
+  // PDF: resumen propio con dropdown de método de pago, sin comparación Excel
+  if (card.isPdf) {
+    cpCardRenderSummaryPdf(card);
+    return;
+  }
+
   var dtoVolPct = Number(card.customer.dto_vol || 0);
   var excelRaw = card.excelTotal; // null si no se pudo leer
   var hasExcel = excelRaw != null;
@@ -4208,6 +4646,109 @@ function cpCardRenderSummary(card) {
   var dBtn2 = card.summaryWrap.querySelector(".cp-detail-btn");
   if (dBtn2)
     dBtn2.addEventListener("click", function () {
+      cpCardOpenDetail(card);
+    });
+}
+
+function cpCardRenderSummaryPdf(card) {
+  var t = cpCardComputeTotals(card);
+  var dtoVolPct = Number(card.customer.dto_vol || 0);
+
+  var payOpts = "";
+  [4, 5, 6, 7, 8, 9].forEach(function (col) {
+    var p = CP_PAYMENT_MAP[col];
+    var sel = card.payment && card.payment.col === col ? " selected" : "";
+    payOpts +=
+      '<option value="' +
+      col +
+      '"' +
+      sel +
+      ">" +
+      p.text +
+      " (" +
+      Math.round(p.discount * 100) +
+      "%)</option>";
+  });
+
+  var html = '<div class="cp-card-summary">';
+  html +=
+    '<div class="cp-summary-row cp-summary-gm-badge">&#128196; Cargado desde PDF</div>';
+  html +=
+    '<div class="cp-summary-row"><span class="cp-s-label">Items</span><span class="cp-s-val">' +
+    card.parsed.length +
+    " (" +
+    t.totalCajas +
+    " cajas)</span></div>";
+  html +=
+    '<div class="cp-summary-row"><span class="cp-s-label">Método de pago</span>' +
+    '<span class="cp-s-val"><select class="field-input cp-pdf-pay" style="padding:4px 6px;font-size:12px;width:auto">' +
+    payOpts +
+    "</select></span></div>";
+  if (card.pdfPaymentRaw) {
+    html +=
+      '<div class="cp-summary-row" style="margin-top:-6px"><span class="cp-s-label" style="font-size:11px;color:var(--text3)">Cond. PDF</span>' +
+      '<span class="cp-s-val" style="font-size:11px;color:var(--text3)">' +
+      cpEscHTML(card.pdfPaymentRaw) +
+      "</span></div>";
+  }
+  html +=
+    '<div class="cp-summary-row"><span class="cp-s-label">Sucursal</span><span class="cp-s-val">' +
+    (card.delivery ||
+      '<span style="color:var(--warning)">(elegí al confirmar)</span>') +
+    "</span></div>";
+  html +=
+    '<div class="cp-summary-row cp-summary-total"><span class="cp-s-label">Total Web</span><span class="cp-s-val">$' +
+    formatMoney(t.excelEquivTotal) +
+    "</span></div>";
+  if (dtoVolPct > 0) {
+    html +=
+      '<div class="cp-summary-row cp-summary-final"><span class="cp-s-label">Total Web - dto vol (' +
+      Math.round(dtoVolPct * 100) +
+      ')</span><span class="cp-s-val">$' +
+      formatMoney(t.finalTotal) +
+      " + IVA</span></div>";
+  }
+  if (card.pdfSubtotal) {
+    html +=
+      '<div class="cp-summary-row cp-excel-row"><span class="cp-s-label">Subtotal OC (PDF)</span><span class="cp-s-val">$' +
+      formatMoney(card.pdfSubtotal) +
+      "</span></div>";
+  }
+  if (card.invalid.length) {
+    html +=
+      '<div class="cp-summary-warn">' +
+      card.invalid.length +
+      " ítems con código no reconocido serán omitidos al subir el pedido: " +
+      card.invalid
+        .map(function (x) {
+          return x.cod;
+        })
+        .join(", ") +
+      "</div>";
+  }
+  html += "</div>";
+  if (card.parsed && card.parsed.length) {
+    html +=
+      '<button type="button" class="cp-detail-btn cp-detail-btn-summary" title="Ver detalle del pedido">' +
+      '<span class="cp-detail-btn-icon" aria-hidden="true">+</span>' +
+      '<span class="cp-detail-btn-label">Ver detalle del pedido</span>' +
+      "</button>";
+  }
+  card.summaryWrap.innerHTML = html;
+  card.summaryWrap.style.display = "block";
+
+  var paySel = card.summaryWrap.querySelector(".cp-pdf-pay");
+  if (paySel)
+    paySel.addEventListener("change", function () {
+      var col = parseInt(paySel.value, 10);
+      card.payment = Object.assign({ col: col }, CP_PAYMENT_MAP[col]);
+      cpCardRenderSummary(card);
+      cpCardRenderActions(card);
+      cpCardRenderBottomButtons(card);
+    });
+  var dBtn = card.summaryWrap.querySelector(".cp-detail-btn");
+  if (dBtn)
+    dBtn.addEventListener("click", function () {
       cpCardOpenDetail(card);
     });
 }
@@ -5139,7 +5680,7 @@ async function cpCardDoSubmit(card) {
       direccion_entrega:
         card.finalDeliveryDireccion || card.finalDelivery || "",
       barrio_entrega: card.finalDeliveryZona || "",
-      empresa: "TN",
+      empresa: "LK",
       is_promo: false,
       extra_discount: 0,
       items: itemsPayload.map(function (it) {
@@ -5851,6 +6392,7 @@ function renderCondicionesDb() {
 document.addEventListener("DOMContentLoaded", async function () {
   var ok = await checkAuth();
   if (ok) {
+    watchSession();
     loadClientes();
     if (isPPPAdmin) loadTrackingDb();
     if (isPPPAdmin) loadCondicionesDb();
@@ -6071,6 +6613,180 @@ async function marcarSucursalCargada(customerId, slot) {
   } catch (e) {
     console.error("marcarSucursalCargada error", e);
     alert("Error: " + (e.message || e));
+  }
+}
+
+/* =========================================================
+   ORIGEN DE PEDIDOS
+   - Cuenta pedidos por origen_pedido (v_orders_origen) con filtro opcional
+     de rango de fechas (sobre created_at).
+   ========================================================= */
+async function cargarOrigenPedidos() {
+  var statusEl = document.getElementById("origenPedidosStatus");
+  var els = {
+    cliente: document.getElementById("origenPedidosCliente"),
+    vendedor: document.getElementById("origenPedidosVendedor"),
+    admin: document.getElementById("origenPedidosAdmin"),
+    desconocido: document.getElementById("origenPedidosDesconocido"),
+  };
+  if (!els.cliente) return;
+
+  var desdeVal = document.getElementById("origenPedidosDesde")?.value || "";
+  var hastaVal = document.getElementById("origenPedidosHasta")?.value || "";
+
+  if (statusEl) statusEl.textContent = "Cargando…";
+
+  try {
+    var keys = ["cliente", "vendedor", "admin", "desconocido"];
+    var counts = {};
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var q = sb
+        .from("v_orders_origen")
+        .select("order_id", { count: "exact", head: true })
+        .eq("origen_pedido", k);
+      if (desdeVal) q = q.gte("created_at", desdeVal + "T00:00:00");
+      if (hastaVal) q = q.lte("created_at", hastaVal + "T23:59:59.999");
+      var r = await q;
+      if (r.error) throw r.error;
+      counts[k] = r.count || 0;
+    }
+
+    els.cliente.textContent = counts.cliente;
+    els.vendedor.textContent = counts.vendedor;
+    els.admin.textContent = counts.admin;
+    els.desconocido.textContent = counts.desconocido;
+
+    var total = counts.cliente + counts.vendedor + counts.admin + counts.desconocido;
+    var rangoTxt =
+      desdeVal || hastaVal
+        ? " (" + (desdeVal || "…") + " a " + (hastaVal || "…") + ")"
+        : "";
+    if (statusEl) statusEl.textContent = "Total: " + total + " pedidos." + rangoTxt;
+  } catch (e) {
+    console.error("cargarOrigenPedidos error:", e);
+    if (statusEl) {
+      statusEl.textContent =
+        "No se pudo cargar (¿corriste add_order_source_tracking.sql en Supabase?): " +
+        (e.message || String(e));
+    }
+  }
+}
+
+/* =========================================================
+   USO DE MÓDULOS
+   - cart_add_events: clics de "agregar" por módulo (source)
+   - v_order_items_source: líneas que terminaron en pedido confirmado
+   - novedades_impressions: veces que se mostró el carrusel de Novedades
+   ========================================================= */
+var USO_MODULOS_SOURCES = [
+  { key: "catalogo", label: "Catálogo normal" },
+  { key: "novedades", label: "Novedades (carrusel)" },
+  { key: "surtido_faltante", label: '"No te falta esto de tu surtido"' },
+  { key: "upsell_popup", label: "Popup upsell (antes de confirmar)" },
+  { key: "loke", label: "Línea Loke" },
+  { key: "sugerencia_vendedor", label: "Sugerir productos (vendedor)" },
+  { key: "sugerencias", label: "Página Sugerencias (IA)" },
+  { key: "historial", label: 'Historial ("Volver a pedir")' },
+];
+
+async function cargarUsoModulos() {
+  var tbody = document.getElementById("usoModulosTableBody");
+  var statusEl = document.getElementById("usoModulosStatus");
+  if (!tbody) return;
+
+  var desdeVal = document.getElementById("usoModulosDesde")?.value || "";
+  var hastaVal = document.getElementById("usoModulosHasta")?.value || "";
+  var desdeISO = desdeVal ? desdeVal + "T00:00:00" : null;
+  var hastaISO = hastaVal ? hastaVal + "T23:59:59.999" : null;
+
+  function withRange(q) {
+    if (desdeISO) q = q.gte("created_at", desdeISO);
+    if (hastaISO) q = q.lte("created_at", hastaISO);
+    return q;
+  }
+
+  if (statusEl) statusEl.textContent = "Cargando…";
+  tbody.innerHTML = "";
+
+  try {
+    var imprPromise = withRange(
+      sb.from("novedades_impressions").select("id", { count: "exact", head: true }),
+    );
+    var clickPromises = USO_MODULOS_SOURCES.map(function (s) {
+      return withRange(
+        sb
+          .from("cart_add_events")
+          .select("id", { count: "exact", head: true })
+          .eq("source", s.key),
+      );
+    });
+    var lineasPromises = USO_MODULOS_SOURCES.map(function (s) {
+      return withRange(
+        sb
+          .from("v_order_items_source")
+          .select("order_item_id", { count: "exact", head: true })
+          .eq("source", s.key),
+      );
+    });
+
+    var all = await Promise.all(
+      [imprPromise].concat(clickPromises).concat(lineasPromises),
+    );
+
+    var imprResult = all[0];
+    if (imprResult.error) throw imprResult.error;
+    var vistas = imprResult.count || 0;
+
+    var clickResults = all.slice(1, 1 + USO_MODULOS_SOURCES.length);
+    var lineasResults = all.slice(1 + USO_MODULOS_SOURCES.length);
+
+    var rows = USO_MODULOS_SOURCES.map(function (s, i) {
+      if (clickResults[i].error) throw clickResults[i].error;
+      if (lineasResults[i].error) throw lineasResults[i].error;
+      return {
+        key: s.key,
+        label: s.label,
+        clicks: clickResults[i].count || 0,
+        lineas: lineasResults[i].count || 0,
+      };
+    });
+
+    var novRow = rows.filter(function (r) {
+      return r.key === "novedades";
+    })[0];
+    var novAgregados = novRow ? novRow.clicks : 0;
+    var conversion =
+      vistas > 0 ? ((novAgregados / vistas) * 100).toFixed(1) + "%" : "–";
+
+    document.getElementById("usoModulosNovVistas").textContent = vistas;
+    document.getElementById("usoModulosNovAgregados").textContent =
+      novAgregados;
+    document.getElementById("usoModulosNovConversion").textContent =
+      conversion;
+
+    tbody.innerHTML = rows
+      .map(function (r) {
+        return (
+          "<tr><td>" +
+          r.label +
+          "</td><td>" +
+          r.clicks +
+          "</td><td>" +
+          r.lineas +
+          "</td></tr>"
+        );
+      })
+      .join("");
+
+    if (statusEl) statusEl.textContent = "Actualizado.";
+  } catch (e) {
+    console.error("cargarUsoModulos error:", e);
+    if (statusEl) {
+      statusEl.textContent =
+        "No se pudo cargar (¿corriste add_module_usage_tracking.sql en Supabase?): " +
+        (e.message || String(e));
+    }
   }
 }
 
@@ -6675,6 +7391,61 @@ async function cargarEstadisticaMadre(forceReload) {
       var c = String(e.item_code || "").trim().toUpperCase();
       if (c) excludedSet[c] = true;
     });
+
+    // 1.d) CAMINO RÁPIDO: caché materializada (proyección + agregado mensual
+    //      precomputados server-side por cron — ver sql/estadistica_madre_cache.sql).
+    //      Si el RPC existe y trae filas, salteamos TODA la descarga por-cliente y
+    //      el cálculo de proyección en JS (que es lo que hace lento el módulo).
+    //      La proyección viene de fn_proyeccion_madre (misma lógica, una sola fuente
+    //      de verdad). Si el RPC no existe / está vacío, caemos al cascade de abajo
+    //      sin cambiar nada del comportamiento actual.
+    try {
+      if (status) status.textContent = "Cargando caché de estadística…";
+      var cacheResp = await sb.rpc("get_estadistica_madre_cache");
+      if (!cacheResp.error && Array.isArray(cacheResp.data) && cacheResp.data.length > 0) {
+        var cByCod = {};
+        var cProj = {};
+        var cYms = {};
+        var cCalcAt = null;
+        cacheResp.data.forEach(function (r) {
+          var k = String(r.cod || "").trim().toUpperCase();
+          if (!k) return;
+          var prod = productByCod[k];
+          var meses = r.meses || {}; // jsonb { "2025-01": unidades, ... }
+          var byYm = {};
+          var total = 0;
+          Object.keys(meses).forEach(function (ym) {
+            if (!/^\d{4}-\d{2}$/.test(ym)) return;
+            var u = Number(meses[ym]) || 0;
+            byYm[ym] = u;
+            total += u;
+            cYms[ym] = true;
+          });
+          cByCod[k] = {
+            cod: prod ? prod.cod : (r.cod || k),
+            desc: prod ? prod.desc : (r.descripcion || k),
+            familia: prod ? prod.familia : (r.familia || "—"),
+            totalUnits: total,
+            byYm: byYm,
+          };
+          cProj[k] = Number(r.proy_uni_mes) || 0;
+          if (!cCalcAt && r.calculado_at) cCalcAt = r.calculado_at;
+        });
+        if (Object.keys(cByCod).length > 0) {
+          _estMadreFullByCod = cByCod;
+          _estMadreFullYms = Object.keys(cYms).sort(); // asc
+          _estMadreFullProjByItem = cProj;
+          _estMadreSource = "caché materializada";
+          _estMadreSourceHasCustomer = true;
+          _estMadreLoadedAt = cCalcAt ? new Date(cCalcAt) : new Date();
+          console.log("[estMadre] caché materializada:", Object.keys(cByCod).length, "artículos");
+          aplicarRangoEstadisticaMadre();
+          return; // listo — no bajamos por-cliente ni recalculamos en JS
+        }
+      }
+    } catch (cacheErr) {
+      console.warn("[estMadre] caché no disponible, uso cascade en vivo:", cacheErr.message);
+    }
 
     // 2) Cargar TODAS las fuentes en cascada — primer éxito gana.
     // Orden: customer-aware primero (necesario para proyección por cliente).
@@ -7460,7 +8231,7 @@ async function mostrarDetalleVentaMadre(cellEl) {
     var clientesChef = rows.filter(_isChef).length;
 
     // Badge "L" (vía Chef) — se inserta al lado del cod_cliente de cada fila Chef
-    var CHEF_BADGE = '<span title="Vía Chef (artículo Tierra Nativa revendido)" style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:5px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">TN</span>';
+    var CHEF_BADGE = '<span title="Vía Chef (artículo Loekemeyer revendido)" style="background:#f39c12;color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;margin-left:5px;font-weight:700;letter-spacing:0.5px;vertical-align:middle">L</span>';
 
     // ---- Header summary ----
     var summary =

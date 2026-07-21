@@ -1,20 +1,19 @@
 /**
  * check-non-webp.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Lista todos los archivos en el bucket que NO son .webp
  *
  * Uso:
  *   node check-non-webp.js
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
 const BUCKET = "products-images";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 async function listFolders() {
   const { data, error } = await supabase.storage

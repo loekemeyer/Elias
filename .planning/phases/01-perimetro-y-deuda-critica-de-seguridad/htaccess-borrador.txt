@@ -1,0 +1,93 @@
+# ============================================================
+# BORRADOR — NO DESPLEGAR TODAVIA
+# ============================================================
+#
+# Destino final: <webroot>/.htaccess  (el webroot lo determina INFRA-01, Plan 02)
+#
+# Por que esta aca y no en la raiz del repo: si el share de red resultara ser
+# el webroot, escribir este archivo en la raiz seria un cambio EN VIVO sobre
+# produccion, con reglas todavia sin validar. Se despliega a mano, una vez que
+# INFRA-01 confirme donde va y despues de probar en una URL de prueba.
+#
+# Reemplaza al enfoque de web.config del Plan 04, que asumia IIS. El servidor
+# es Apache (confirmado 2026-07-21 por el mensaje "ErrorDocument" en el 404).
+#
+# ADVERTENCIA: si AllowOverride esta en None para este host, Apache IGNORA
+# este archivo en silencio. Verificar que las reglas surtan efecto pidiendo
+# una de las URLs bloqueadas ANTES de dar INFRA-02 por cumplido.
+#
+# ============================================================
+
+# ---- 1. Bloquear los scripts de mantenimiento de storage -------------
+# Por nombre exacto. NO se puede bloquear *.js en bloque: el frontend del
+# sitio es JavaScript (script.js, admin.js, historial.js, version.js,
+# admin-supercot.js, admin-excel-krikos.js...). Un deny sobre .js
+# rompe el sitio entero.
+<FilesMatch "^(check-non-webp|compress-75kb|download-all-images|optimize-images|recreate-bucket|rename-images|storage-audit|storage-size|supabase-admin-client)\.js$">
+  # Apache 2.4
+  Require all denied
+  # Apache 2.2 (descomentar solo si el host es 2.2)
+  # Order allow,deny
+  # Deny from all
+</FilesMatch>
+
+# ---- 2. Bloquear artefactos que nunca deben servirse ------------------
+<FilesMatch "\.(sql|md|log|bak|old|zip|ps1)$">
+  Require all denied
+</FilesMatch>
+
+# ---- 3. Bloquear dotfiles y archivos de credenciales ------------------
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(package\.json|package-lock\.json)$">
+  Require all denied
+</FilesMatch>
+
+# ---- 4. Bloquear directorios de repo y planificacion -----------------
+RedirectMatch 404 ^/\.git(/|$)
+RedirectMatch 404 ^/\.planning(/|$)
+RedirectMatch 404 ^/\.locks(/|$)
+RedirectMatch 404 ^/node_modules(/|$)
+RedirectMatch 404 ^/backup-images(/|$)
+
+# ---- 5. No listar directorios ----------------------------------------
+Options -Indexes
+
+# ---- 6. Redirect a HTTPS ---------------------------------------------
+# Va DESPUES de los denies a proposito. Si fuera antes, un pedido por
+# http:// a un script bloqueado devolveria 301 en vez de 403, confirmando
+# que el archivo existe.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+</IfModule>
+
+# ---- 7. Headers de seguridad -----------------------------------------
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ============================================================
+# COMO VERIFICAR DESPUES DE DESPLEGAR
+# ============================================================
+#
+# Debe dar 403 o 404:
+#   https://tierravintage.com.ar/storage-audit.js
+#   https://tierravintage.com.ar/optimize-images.js
+#   https://tierravintage.com.ar/package.json
+#   https://tierravintage.com.ar/.env
+#   https://tierravintage.com.ar/migration_tn.sql
+#
+# Debe seguir funcionando (regresion — si alguna falla, revertir):
+#   https://tierravintage.com.ar/
+#   https://tierravintage.com.ar/mayorista.html
+#   https://tierravintage.com.ar/script.js
+#   https://tierravintage.com.ar/admin.js
+#   https://tierravintage.com.ar/css/styles.css
+#
+# Si el sitio se rompe: borrar el .htaccess y vuelve al estado anterior
+# de inmediato. Apache no cachea este archivo.

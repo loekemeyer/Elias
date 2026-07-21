@@ -1,0 +1,50 @@
+BASELINE DE GRANTS — produccion zjvpzqhbekxnwxdczpof
+Capturado 2026-07-21 via aclexplode(proacl)
+
+RESPUESTA A LA PREGUNTA DECISIVA DEL PLAN 01:
+
+  get_products_public_sorted(text) YA tiene GRANT a anon
+  -> el drop es seguro sin GRANT previo.
+
+El riesgo #3 que detecto la planificacion de la Phase 3 NO se materializa:
+AMBOS overloads del catalogo tienen EXECUTE para anon. Dropear cualquiera
+de los dos no deja el catalogo publico sin permisos.
+
+=====================================================================
+ACL por funcion (EXECUTE en todos los casos)
+=====================================================================
+
+get_products_public_sorted()             anon  authenticated  postgres  service_role
+get_products_public_sorted(text)         anon  authenticated  postgres  service_role
+                                         ^^^^ presente en los dos
+
+get_my_linked_customers()                      authenticated  postgres  service_role
+get_my_linked_customers(uuid)                  authenticated  postgres  service_role
+
+-- Las 7 de DATA-02: todas ejecutables por cualquier usuario logueado.
+get_all_sales_lines_admin()                    authenticated  postgres  service_role
+get_customer_sales_history(text)               authenticated  postgres  service_role
+get_estadistica_clientes_agg()                 authenticated  postgres  service_role
+get_estadistica_madre_detail(text,text)        authenticated  postgres  service_role
+get_my_assortment_18m(text)                    authenticated  postgres  service_role
+get_procesar_pedidos_recent(integer)           authenticated  postgres  service_role
+get_procesar_pedidos_stats(integer)            authenticated  postgres  service_role
+
+(cada fila incluye ademas un grantee "unknown (OID=0)", que es PUBLIC
+revocado/heredado — sin efecto practico)
+
+=====================================================================
+LECTURA
+=====================================================================
+
+1. DATA-02 queda CONFIRMADO como problema real, no teorico: las 7
+   funciones tienen EXECUTE para `authenticated`, o sea que cualquiera
+   de los 539 usuarios de auth puede invocarlas y obtener datos de toda
+   la empresa. No hace falta ser admin ni saber nada especial.
+
+2. Ninguna de las 7 tiene GRANT a `anon`, asi que el vector requiere
+   estar logueado. Eso acota el riesgo pero no lo elimina: son 539
+   cuentas de clientes mayoristas, competidores entre si.
+
+3. El GRANT a anon de los dos overloads del catalogo es correcto y
+   esperado: el catalogo publico se muestra sin login.

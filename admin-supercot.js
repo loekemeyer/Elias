@@ -8,7 +8,8 @@
 // IMPORTANTE: este modulo NO aplica dto_vol, NO aplica web_discount, NO aplica
 // descuento por metodo de pago. El precio del PDF es precio final negociado.
 //
-// Lista de comparacion ("Lista LK") proviene del archivo precios_supermercados.xlsx
+// Lista de comparacion proviene de la tabla precios_super (RPC get_super_prices,
+// gated por admin). Ya NO del archivo publico precios_supermercados.xlsx.
 // en la raiz del proyecto, hoja por cadena. Si no hay match en el Excel, fallback
 // a products.list_price.
 // ============================================================================
@@ -152,36 +153,58 @@
 
   // ----- Constantes -----
   var SHEETS_PROXY_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-proxy";
   var SHEETS_ENTREGAS_URL =
-    "https://zjvpzqhbekxnwxdczpof.supabase.co/functions/v1/google-sheets";
+    "https://zjvpzqhbekxnwxdczpof.functions.supabase.co/sheets-entregas-proxy";
 
-  // Chef Supabase (proyecto separado para Dorinka/Cencosud)
-  var CHEF_URL = "https://nkhzocgdpwtgrmwleihr.supabase.co";
-  var CHEF_KEY = "sb_publishable_aThHtJLBKytg9k_6UdH2Eg_Use7f1zH";
-  var CHEF_SHEETS_PROXY_URL =
-    "https://nkhzocgdpwtgrmwleihr.functions.supabase.co/sheets-proxy";
-  var CHEF_SHEETS_ENTREGAS_URL =
-    "https://nkhzocgdpwtgrmwleihr.functions.supabase.co/sheets-entregas-proxy";
+  // ===================================================================
+  // COT-02: el path a Chef fue ELIMINADO en el port a Tierra Nativa.
+  //
+  // En PaginaLK, Dorinka y Cencosud se resolvian contra un proyecto
+  // Supabase aparte ("Chef", nkhzocgdpwtgrmwleihr): cliente, RPC de alta
+  // de pedido, catalogo de productos y sheets propios. Tierra Nativa
+  // tiene a esas dos cadenas como clientes en su PROPIA base, asi que
+  // no hay nada que delegar.
+  //
+  // Constantes eliminadas: CHEF_URL, CHEF_KEY, CHEF_SHEETS_PROXY_URL,
+  // CHEF_SHEETS_ENTREGAS_URL.
+  //
+  // Las dos de abajo quedan como TOMBSTONE, no como configuracion. Hay 5
+  // referencias en ramas que isChefSuper() ya vuelve inalcanzables; dejar
+  // los identificadores sin declarar sería frágil en un flujo de submit,
+  // asi que se declaran con valores que no conectan a ningun lado y que
+  // hacen ruido si alguna rama olvidada llegara a ejecutarse.
+  // ===================================================================
+  var CHEF_CUSTOMER_COD = {}; // vacio a proposito: no hay clientes en Chef
+  var CHEF_CREATE_ORDER_URL = null; // no hay endpoint de Chef
 
-  // Cliente fijo por super en Chef Supabase (no se usa supermarket_branch_mapping)
-  var CHEF_CUSTOMER_COD = {
-    dorinka: "2686",
-    cencosud: "2444",
-  };
-
-  // Cliente fijo por super en LK Supabase. Auto-detectado al leer el PDF, sin
-  // busqueda manual. Si falta una entrada, el flow muestra error.
+  // Cliente fijo por super. Auto-detectado al leer el PDF, sin busqueda
+  // manual. Si falta una entrada, el flow muestra error — que es el modo
+  // de falla correcto y por eso las cadenas sin equivalente NO se listan.
+  //
+  // ATENCION: estos codigos son de la base de Tierra Nativa, verificados
+  // por razon social contra la tabla customers el 2026-07-21. Los que
+  // traia PaginaLK eran de Loekemeyer y NO coinciden: reutilizarlos
+  // habria cargado pedidos a nombre de clientes equivocados. Ejemplo
+  // concreto: el cod 1651 era "Inc" en LK, pero en Tierra Nativa es una
+  // persona fisica sin relacion con la cadena.
   var LK_CUSTOMER_COD = {
-    coto: "801",
-    dia: "3947",
-    diarco: "4112",
-    laanonima: "771",
-    alberdi: "2320",
-    libertad: "325",
-    abastecedor: "4051",
-    inc: "1651",
-    // toledo: "1947", // a sumar
+    coto: "2032", //  Coto C.I.C.S.A.        (LK usaba 801)
+    dia: "1913", //   Gonzagero Dia S.A      (LK usaba 3947)
+    alberdi: "1982", // Alberdi S.A          (LK usaba 2320)
+    libertad: "1047", // Libertad S.A        (LK usaba 325)
+    inc: "917", //    Inc S.A.               (LK usaba 1651 -> otra persona)
+    toledo: "2007", // Supermercados Toledo S.A
+    dorinka: "191", // Dorinka S.R.L.        (LK lo mandaba a Chef, cod 2686)
+    cencosud: "1919", // Cencosud SA         (LK lo mandaba a Chef, cod 2444)
+
+    // SIN EQUIVALENTE EN TIERRA NATIVA — no figuran en su tabla customers.
+    // Se dejan fuera a proposito: si aparece un PDF de estas cadenas, el
+    // flow corta con error en vez de usar un codigo ajeno.
+    //   diarco       (LK: 4112)
+    //   laanonima    (LK: 771)
+    //   abastecedor  (LK: 4051)
+    //   messina      (LK: 1573 -> en TN es otra persona fisica)
   };
 
   // Codigo numerico de condicion de pago por super (va a columna I del sheet
@@ -197,6 +220,8 @@
     libertad: 2,
     abastecedor: 1,
     inc: 14,
+    // Messina: "CUENTA CORRIENTE. 15 DIAS FF" → 9 (escala web: 15-30 días)
+    messina: 9,
   };
 
   // Ratio conocido entre el TOTAL calculado (con precios de lista LK, sin
@@ -237,6 +262,7 @@
     libertad: "Libertad",
     abastecedor: "El Abastecedor (Tecnolar)",
     inc: "Carrefour (INC)",
+    messina: "Messina Hnos",
   };
 
   // Mapeo hoja Excel -> super_key + posiciones de columnas
@@ -264,28 +290,37 @@
   var superListPrices = {}; // { superKey: { codLk: price } }
   var superListLoaded = false;
 
-  // isChefSuper: super que usa CLIENTE/RPC/SHEETS/L-suffix de Chef.
-  // Dorinka y Cencosud van a Chef en estos aspectos.
-  function isChefSuper(superKey) {
-    return superKey === "dorinka" || superKey === "cencosud";
+  // COT-02: en Tierra Nativa NINGUNA cadena va a Chef.
+  //
+  // En PaginaLK esto devolvia true para dorinka y cencosud, que se
+  // resolvian contra el proyecto Supabase de Chef. Tierra Nativa tiene a
+  // las dos como clientes propios (cod 191 y 1919), asi que van por el
+  // mismo camino que el resto.
+  //
+  // Se conservan las funciones en vez de borrar sus ~15 call sites: con
+  // false constante, todo el arbol de decision toma la rama propia y el
+  // codigo de Chef queda inalcanzable. Borrarlas implicaria reescribir
+  // renderResult, renderCustomerCard y el flujo de submit, con mucho mas
+  // riesgo de romper el parseo de las cadenas que SI se usan.
+  function isChefSuper(_superKey) {
+    return false;
   }
 
-  // usesChefProducts: super que MATCHEA productos contra el catalogo de Chef.
-  // Solo Dorinka — sus productos viven en Chef DB y se insertan en
-  // Chef.order_items normalmente. Cencosud matchea contra LK + loke_products
-  // (los items que pide existen en LK), y para evitar FK conflict en Chef se
-  // manda p_items=[] al RPC (solo se inserta header → preserva secuencia Chef).
-  function usesChefProducts(superKey) {
-    return superKey === "dorinka";
+  // Idem: el catalogo de productos siempre es el de Tierra Nativa.
+  function usesChefProducts(_superKey) {
+    return false;
   }
 
+  // getChefClient queda como stub que nunca devuelve cliente. Si alguna
+  // rama olvidada intentara usarlo, falla de forma explicita y ruidosa
+  // en vez de conectarse en silencio a la base de otra empresa.
   function getChefClient() {
-    if (chefSb) return chefSb;
-    if (!window.supabase) return null;
-    chefSb = window.supabase.createClient(CHEF_URL, CHEF_KEY, {
-      auth: { persistSession: false },
-    });
-    return chefSb;
+    console.error(
+      "getChefClient() fue invocada, pero el path a Chef se elimino en el " +
+        "port a Tierra Nativa (COT-02). Esto es un bug: alguna rama quedo " +
+        "colgada. No se conecta a ninguna base externa.",
+    );
+    return null;
   }
 
   // state ahora vive por-card dentro de createCardInstance(). Ver más abajo.
@@ -431,6 +466,8 @@
     if (/SUPERMERCADOS\s+EL\s+ABASTECEDOR|TECNOLAR/i.test(t))
       return "abastecedor";
     if (/OrdIncPlx|COMPRADOR:\s*INC\s*S\.?A\.?/i.test(t)) return "inc";
+    // Messina: el encabezado viene con letras espaciadas "M E S S I N A   H N O S"
+    if (/M\s*E\s*S\s*S\s*I\s*N\s*A\s*H\s*N\s*O\s*S/i.test(t)) return "messina";
     return null;
   }
 
@@ -625,11 +662,20 @@
   // interno vs el total calculado. Las patterns están ordenadas por prioridad —
   // primero los "sub totales" sin IVA / sin impuestos para matchear directo
   // con el calc.
-  function extractPdfTotal(text) {
+  function extractPdfTotal(text, superKey) {
     if (!text) return null;
     // Caso especial: Coto requiere extraccion por posicion de columna
     var cotoVal = extractCotoTotal(text);
     if (cotoVal) return cotoVal;
+    // Messina: "Subtotal : 4,156,139.40" (sin IVA, matchea calc directo).
+    // Solo para messina, para no pisar el fallback generico "Total:" de otras cadenas.
+    if (superKey === "messina") {
+      var mm = text.match(/Subtotal\s*:?\s*\$?\s*([\d.,]+)/i);
+      if (mm) {
+        var mv = parseNum(mm[1]);
+        if (mv > 0) return mv;
+      }
+    }
     var patterns = [
       // Abastecedor: "TOTAL O. C.: 2365860" (sub total sin IVA, matchea calc)
       /TOTAL\s*O\.?\s*C\.?:?\s*\$?\s*([\d.,]+)/i,
@@ -1475,6 +1521,93 @@
     };
   }
 
+  // ---- MESSINA (Hnos) ----
+  // "PEDIDO DE COTIZACION". 1 linea por item (agrupada por Y):
+  // COD_MESSINA DESC [DESC ADICIONAL] Caja x N Uni[d] COD_LK EAN13 UNIDADES P.UNIT %BON IMPORTE
+  // El "Código Artículo Proveedor" ES el cod LK (501, 505, 960E...). La cantidad
+  // viene en UNIDADES → cajas = unidades / uxb ("Caja x 6 Unid" / "Caja x 12 Uni").
+  // Precio unitario POR UNIDAD (importe = unidades × precio). Subtotal sin IVA.
+  function parseMessina(text) {
+    var lines = splitLines(text);
+    var items = [];
+
+    var ITEM_RE = /^(\d{8,12})\s+(.+?)\s+Caja\s*x\s*(\d+)\s*Uni\w*\.?\s+(\S+)\s+(\d{13})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/i;
+    lines.forEach(function (line) {
+      var m = line.match(ITEM_RE);
+      if (!m) return;
+      var uxb = parseInt(m[3], 10) || 0;
+      var unidades = parseNum(m[6]);
+      var cajas = uxb > 0 ? Math.round(unidades / uxb) : 0;
+      var unitPrice = parseNum(m[7]);
+      if (cajas > 0 && unitPrice > 0) {
+        items.push({
+          codLk: m[4].trim().toUpperCase(),
+          ean: m[5],
+          description: m[2].trim(),
+          cajas: cajas,
+          uxb: uxb,
+          unitPrice: unitPrice,
+        });
+      }
+    });
+
+    // "Nº Orden : 00000-00007058" → "7058" (ultimo tramo, sin ceros a la izquierda)
+    var orderNumber = "";
+    var om = findFieldRegex_(lines, /N[ºo°]?\s*Orden\s*:?\s*([\d-]+)/i);
+    if (om) {
+      var tramo = om.split("-").pop();
+      orderNumber = String(parseInt(tramo, 10) || "");
+    }
+
+    // Deposito de entrega: el label "Depósito Entrega:" cierra la linea de
+    // Cond.Compra y el VALOR cae en la linea de Observaciones (misma Y).
+    // Ej: "Observaciones: DP1 MADRES D PLAZA D" → branchId "DP1".
+    var branchId = "";
+    var branchName = "";
+    for (var i = 0; i < lines.length; i++) {
+      var m2 =
+        lines[i].match(/Dep[oó]sito\s*Entrega:?\s*([A-Z]{2,3}\d{1,3})\s+(.{3,})/i) ||
+        lines[i].match(/^Observaciones:?\s*([A-Z]{2,3}\d{1,3})\s+(.{3,})/i);
+      if (m2) {
+        branchId = m2[1].trim().toUpperCase();
+        branchName = m2[2].trim();
+        break;
+      }
+    }
+
+    // Condicion de compra: "Cond.Compra : 22 CUENTA CORRIENTE. 15 DIAS FF ..."
+    var paymentTermRaw = "";
+    var pm = findFieldRegex_(
+      lines,
+      /Cond\.?\s*Compra\s*:?\s*\d*\s*([A-ZÁÉÍÓÚ][^]*?)(?:\s*Dep[oó]sito\s*Entrega.*)?$/i
+    );
+    if (pm) paymentTermRaw = pm.trim();
+
+    // Vencimiento: Fecha Vigencia si viene; si no, Fecha Entrega + dias de la
+    // condicion de pago ("15 DIAS FF" → entrega + 15, aprox).
+    var dueDate = findFieldRegex_(
+      lines,
+      /Fecha\s*Vigencia\s*:?\s*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i
+    );
+    if (!dueDate) {
+      var entrega = findFieldRegex_(
+        lines,
+        /Fecha\s*Entrega\s*:?\s*(\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4})/i
+      );
+      var diasM = paymentTermRaw.match(/(\d+)\s*DIAS/i);
+      if (entrega && diasM) dueDate = addDaysToDate_(entrega, parseInt(diasM[1], 10)) + " (aprox)";
+    }
+
+    return {
+      items: items,
+      orderNumber: orderNumber,
+      branchId: branchId,
+      branchName: branchName,
+      paymentTermRaw: paymentTermRaw,
+      dueDate: dueDate,
+    };
+  }
+
   var PARSERS = {
     coto: parseCoto,
     dia: parseDia,
@@ -1486,6 +1619,7 @@
     libertad: parseLibertad,
     abastecedor: parseAbastecedor,
     inc: parseInc,
+    messina: parseMessina,
   };
 
   // ============================================================================
@@ -1610,6 +1744,26 @@
     return r.data && r.data[0] ? r.data[0] : null;
   }
 
+  // Gate de sesion. Con el access token vencido los requests salen como rol anon
+  // y las tablas admin-only devuelven 0 filas SIN error, asi que el flow no puede
+  // distinguir "sin permiso" de "no existe": customers vacio se ve como
+  // "CLIENTE no encontrado (esperaba cod 771)" y loke_products vacio deja todo
+  // item de la linea Loke como "sin LK" — subestimando el pedido en silencio.
+  // products tiene policy anon, asi que el resto de la card se ve sana y despista.
+  // Chequear antes de procesar; hasLiveAdminSession() vive en admin.js y de paso
+  // repara el token si el refresh todavia es posible.
+  async function ensureAdminSession() {
+    if (!window.sb) return "Cliente Supabase no inicializado. Recargá la página (F5).";
+    if (typeof window.hasLiveAdminSession !== "function") return null;
+    try {
+      var ok = await window.hasLiveAdminSession();
+      if (ok) return null;
+      return "Sesión vencida — no se procesó el PDF. Recargá la página (F5) y reintentá.";
+    } catch (e) {
+      return "No se pudo validar la sesión: " + (e.message || e) + ". Recargá la página (F5).";
+    }
+  }
+
   // Cargar customer fijo en LK segun super
   async function loadLKCustomer(superKey) {
     var codCliente = LK_CUSTOMER_COD[superKey];
@@ -1694,51 +1848,26 @@
     return null;
   }
 
-  // Cargar precios por super desde precios_supermercados.xlsx
+  // Cargar precios por super desde la tabla precios_super, vía RPC gated por
+  // admin (get_super_prices). Antes venía del xlsx PÚBLICO en el web root; ahora
+  // está detrás de auth (el RPC devuelve 0 filas si no sos admin). Estructura:
+  // superListPrices[super_key][COD_MAYUS] = price.
   async function loadSuperPrices() {
     if (superListLoaded) return;
     try {
-      // Cache-bust con timestamp para evitar que el browser cachee Excel viejo.
-      // El archivo es ~230KB, costo aceptable de re-descarga.
-      var resp = await fetch("precios_supermercados.xlsx?v=" + Date.now());
-      if (!resp.ok) {
-        console.warn("scot: no se pudo cargar precios_supermercados.xlsx (" + resp.status + ")");
+      var r = await window.sb.rpc("get_super_prices");
+      if (r.error) {
+        console.warn("scot: get_super_prices error:", r.error.message);
         superListLoaded = true;
         return;
       }
-      var buf = await resp.arrayBuffer();
-      var wb = window.XLSX.read(buf, { type: "array" });
-      Object.keys(SHEET_CONFIG).forEach(function (sheetName) {
-        var cfg = SHEET_CONFIG[sheetName];
-        var ws = wb.Sheets[sheetName];
-        if (!ws) {
-          console.warn("scot: hoja faltante en Excel:", sheetName);
-          return;
-        }
-        var rows = window.XLSX.utils.sheet_to_json(ws, {
-          header: 1,
-          defval: "",
-        });
-        var dict = {};
-        // First-wins: leemos toda la hoja desde dataStartRow. Saltamos lineas
-        // que sean otro header "Cod" (algunas hojas como COTO tienen segunda tabla
-        // con codigos adicionales). NO sobreescribimos entradas ya cargadas.
-        for (var i = cfg.dataStartRow; i < rows.length; i++) {
-          var row = rows[i] || [];
-          var cod = row[cfg.codCol];
-          var price = row[cfg.priceCol];
-          // Saltear linea si es un header "Cod" (continuar, no break)
-          var codStr = String(cod || "").trim().toLowerCase();
-          if (codStr === "cod" || codStr === "cod anonima") continue;
-          if (cod === "" || cod == null) continue;
-          if (typeof price !== "number" || price <= 0) continue;
-          var k = String(cod).trim().toUpperCase();
-          if (!k) continue;
-          // First-wins: si ya existe, no pisar
-          if (dict[k] != null) continue;
-          dict[k] = price;
-        }
-        superListPrices[cfg.key] = dict;
+      (r.data || []).forEach(function (row) {
+        var sk = row.super_key;
+        var cod = String(row.cod || "").trim().toUpperCase();
+        if (!sk || !cod) return;
+        if (!superListPrices[sk]) superListPrices[sk] = {};
+        // First-wins: no pisar si ya existe.
+        if (superListPrices[sk][cod] == null) superListPrices[sk][cod] = Number(row.price);
       });
       superListLoaded = true;
     } catch (e) {
@@ -1755,6 +1884,64 @@
       if (dict[variants[i]] != null) return dict[variants[i]];
     }
     return null;
+  }
+
+  // Actualizar la lista de precios subiendo el xlsx: se parsea en el browser y
+  // se manda al RPC set_super_prices (gated por admin, service_role). El archivo
+  // NO se guarda en el server (deja de estar público). En LK se procesan los
+  // supers LK (se saltean dorinka/cencosud, que son de Chef).
+  async function updateSuperPricesFromFile(file, onMsg) {
+    var msg = onMsg || function () {};
+    if (!file) return;
+    if (!window.XLSX) return msg("La librería XLSX no cargó", "err");
+    if (!window.sb) return msg("Sin sesión", "err");
+    try {
+      msg("Leyendo archivo…", "info");
+      var buf = await file.arrayBuffer();
+      var wb = window.XLSX.read(buf, { type: "array" });
+      var listaArr = [], preciosArr = [];
+      Object.keys(SHEET_CONFIG).forEach(function (sheetName) {
+        var cfg = SHEET_CONFIG[sheetName];
+        if (isChefSuper(cfg.key)) return; // LK: saltear dorinka/cencosud (son de Chef)
+        var ws = wb.Sheets[sheetName];
+        if (!ws) return;
+        var rows = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        var fecha = "";
+        for (var h = 0; h < cfg.dataStartRow && !fecha; h++) {
+          var hr = rows[h] || [];
+          for (var k = 0; k < hr.length; k++) {
+            var m = String(hr[k] || "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            if (m) { fecha = m[3] + "-" + m[2] + "-" + m[1]; break; }
+          }
+        }
+        listaArr.push({ super_key: cfg.key, lista_fecha: fecha });
+        var seen = {};
+        for (var i = cfg.dataStartRow; i < rows.length; i++) {
+          var row = rows[i] || [];
+          var cod = row[cfg.codCol], price = row[cfg.priceCol];
+          var cs = String(cod || "").trim().toLowerCase();
+          if (cs === "cod" || cs === "cod anonima" || cod === "" || cod == null) continue;
+          if (typeof price !== "number" || price <= 0) continue;
+          var uc = String(cod).trim().toUpperCase();
+          if (!uc || seen[uc]) continue;
+          seen[uc] = 1;
+          preciosArr.push({ super_key: cfg.key, cod: uc, price: price });
+        }
+      });
+      if (!listaArr.length) return msg("El xlsx no tiene hojas de supers LK", "err");
+      msg("Subiendo " + preciosArr.length + " precios…", "info");
+      var r = await window.sb.rpc("set_super_prices", { p_lista: listaArr, p_precios: preciosArr });
+      if (r.error) throw new Error(r.error.message);
+      superListPrices = {};
+      superListLoaded = false;
+      await loadSuperPrices();
+      var d = r.data || {};
+      msg("✓ Actualizado: " + (d.precios_total != null ? d.precios_total : preciosArr.length) + " precios · " + ((d.supers || []).join(", ")), "ok");
+      return d;
+    } catch (e) {
+      msg("Error: " + (e.message || e), "err");
+      throw e;
+    }
   }
 
   // ============================================================================
@@ -1902,6 +2089,14 @@
     }
     setStatus('<span class="scot-spinner"></span> Procesando PDF...');
     try {
+      // Sesion primero: sin admin vivo, customers y loke_products mienten (0 filas
+      // sin error) y la card queda mal sin que se note. Cortar antes de parsear.
+      var sessionErr = await ensureAdminSession();
+      if (sessionErr) {
+        setStatus("⚠ " + escapeHtml(sessionErr), "err");
+        window.toast && window.toast(sessionErr, "error");
+        return;
+      }
       // Hash del archivo para detectar duplicados entre cards
       var hash = await computeFileHash(file);
       var dupIdx = findDuplicateCardIdx(hash, idx);
@@ -1945,7 +2140,7 @@
       state.paymentTermRaw = parsed.paymentTermRaw || "";
       state.paymentTermEdited = state.paymentTermRaw;
       state.dueDate = parsed.dueDate || "";
-      state.pdfTotal = extractPdfTotal(text);
+      state.pdfTotal = extractPdfTotal(text, key);
 
       if (!parsed.items.length) {
         console.warn("Texto extraído:", text);
@@ -2848,56 +3043,12 @@
       // van también a Sheets con sufijo L para "Pedidos CH".
       var rpcItemsForChef =
         state.superKey === "cencosud" ? [] : rpcItems;
-      var orderId;
-      if (isChef) {
-        var rpcResult = await dbClient.rpc("submit_order_fast", {
-          p_auth_user_id: authUserId,
-          p_customer_id: state.customer.id,
-          p_status: "pendiente",
-          p_payment_method: paymentMethodText,
-          p_payment_discount: 0,
-          p_web_discount: 0,
-          p_subtotal: subtotal,
-          p_total: total,
-          p_items: rpcItemsForChef,
-        });
-        if (rpcResult.error) {
-          // RPC no existe o fallo. Generar order_number sintetico y continuar.
-          console.warn(
-            "scot Chef RPC submit_order_fast no disponible, usando order_number sintetico:",
-            rpcResult.error.message,
-          );
-          var ts = new Date()
-            .toISOString()
-            .replace(/[-:T]/g, "")
-            .slice(0, 14);
-          orderId =
-            "CHEF-" + state.superKey.toUpperCase() + "-" + ts;
-        } else {
-          orderId = rpcResult.data;
-        }
-      } else {
-        var rpcResultLk = await dbClient.rpc("submit_order_fast", {
-          p_auth_user_id: authUserId,
-          p_customer_id: state.customer.id,
-          p_status: "pendiente",
-          p_payment_method: paymentMethodText,
-          p_payment_discount: 0,
-          p_web_discount: 0,
-          p_subtotal: subtotal,
-          p_total: total,
-          p_items: rpcItems,
-        });
-        if (rpcResultLk.error || !rpcResultLk.data) {
-          throw new Error(
-            (rpcResultLk.error &&
-              (rpcResultLk.error.message || rpcResultLk.error.details)) ||
-              "RPC falló",
-          );
-        }
-        orderId = rpcResultLk.data;
-      }
 
+      // Direccion + sheetsPayload se arman ANTES de crear el pedido: en Chef se
+      // pasan a create-super-order para que persista sheets_payload con
+      // service_role (el mail de compras filtra sheets_payload NOT NULL; el
+      // write-back anon del browser lo bloquea RLS). order_number se completa
+      // con el id real una vez creado.
       // Si hay direccion mapeada usarla; si no, fallback al texto crudo del PDF
       var deliveryDireccion =
         (state.deliveryAddress && state.deliveryAddress.direccion_entrega) ||
@@ -2905,8 +3056,6 @@
           (state.branchName ? " - " + state.branchName : ""));
       var deliveryZona =
         (state.deliveryAddress && state.deliveryAddress.zona_expreso) || "";
-      // Sucursal entrega: si hay mapeo, usar solo el label de la DB.
-      // Si no, fallback a "branchId - branchName [super]".
       var sucursalEntrega =
         state.deliveryAddress && state.deliveryAddress.label
           ? state.deliveryAddress.label
@@ -2917,9 +3066,7 @@
             "]";
 
       var sheetsPayload = {
-        order_number: String(orderId),
-        // pdf_oc: numero de Orden de Compra que viene del PDF del super (ej Coto
-        // "Pedido: 21580594093", Dia "Numero OC: 1131469"). Va a columna O del sheet.
+        order_number: "",
         pdf_oc: String(state.orderNumber || ""),
         cod_cliente: String(state.customer.cod_cliente || ""),
         vend: String(state.customer.vend || ""),
@@ -2946,24 +3093,129 @@
         }),
       };
 
-      // Si tenemos orden real (no sintetico) actualizar la tabla orders
+      var orderId;
+      if (isChef) {
+        // Chef: la RPC submit_order_fast exige auth.uid()=admin, pero acá el
+        // cliente Chef es anonimo -> siempre fallaba y caia al id sintetico
+        // (no lo tomaba el reporte Chef). Ahora usamos la Edge Function
+        // create-super-order: valida el JWT del admin LK e inserta con
+        // service_role, devolviendo el id bigint real.
+        try {
+          var coResp = await fetch(CHEF_CREATE_ORDER_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + authToken,
+              apikey: apiKey,
+            },
+            body: JSON.stringify({
+              customer_id: state.customer.id,
+              status: "pendiente",
+              payment_method: paymentMethodText,
+              payment_discount: 0,
+              web_discount: 0,
+              subtotal: subtotal,
+              total: total,
+              items: rpcItemsForChef,
+              sheets_payload: sheetsPayload,
+            }),
+          });
+          var coData = await coResp.json().catch(function () {
+            return null;
+          });
+          if (!coResp.ok || !coData || coData.ok === false || !coData.order_id) {
+            throw new Error(
+              (coData && coData.error) || "create-super-order HTTP " + coResp.status,
+            );
+          }
+          orderId = coData.order_id;
+        } catch (coErr) {
+          // Fallback: order_number sintetico (red de seguridad). Ojo: no entra
+          // al reporte Chef automatico, hay que asignar N° a mano.
+          console.warn(
+            "scot Chef create-super-order fallo, usando order_number sintetico:",
+            coErr && (coErr.message || coErr),
+          );
+          var ts = new Date()
+            .toISOString()
+            .replace(/[-:T]/g, "")
+            .slice(0, 14);
+          orderId =
+            "CHEF-" + state.superKey.toUpperCase() + "-" + ts;
+        }
+      } else {
+        var rpcResultLk = await dbClient.rpc("submit_order_fast", {
+          p_auth_user_id: authUserId,
+          p_customer_id: state.customer.id,
+          p_status: "pendiente",
+          p_payment_method: paymentMethodText,
+          p_payment_discount: 0,
+          p_web_discount: 0,
+          p_subtotal: subtotal,
+          p_total: total,
+          p_items: rpcItems,
+        });
+        if (rpcResultLk.error || !rpcResultLk.data) {
+          throw new Error(
+            (rpcResultLk.error &&
+              (rpcResultLk.error.message || rpcResultLk.error.details)) ||
+              "RPC falló",
+          );
+        }
+        orderId = rpcResultLk.data;
+      }
+
+      // COT-03: ningun pedido puede seguir adelante con un numero inventado.
+      //
+      // PaginaLK, si fallaba el alta en Chef, fabricaba un order_number tipo
+      // "CHEF-DORINKA-20260721..." y continuaba: el pedido viajaba a Sheets y
+      // a Entregas sin existir en ninguna base, y el operario veia "Pedido
+      // subido". Esa rama ya es inalcanzable (isChefSuper devuelve false), y
+      // la rama propia lanza error si el RPC falla.
+      //
+      // Este guard cierra el caso igual, de forma explicita: si en el futuro
+      // alguien reintroduce un fallback, corta aca en vez de propagar un
+      // pedido fantasma.
+      if (
+        orderId == null ||
+        orderId === "" ||
+        (typeof orderId === "string" && /^CHEF-/.test(orderId))
+      ) {
+        throw new Error(
+          "No se obtuvo un numero de pedido real de la base. El pedido NO se " +
+            "subio. Revisar el error del RPC submit_order_fast antes de " +
+            "reintentar; no cargar el pedido a mano sin verificar que no haya " +
+            "quedado a medias.",
+        );
+      }
+
+      // Completar order_number ahora que tenemos el id real.
+      sheetsPayload.order_number = String(orderId);
+
+      // Actualizar la tabla orders con el sheets_payload.
+      //  - LK: via su cliente (RLS: dueño de la order). Incluye placed_by.
+      //  - Chef: NO se toca acá; create-super-order ya persistió sheets_payload
+      //    con service_role (el update anon lo bloquea RLS de Chef.orders).
       var isSyntheticOrder =
         typeof orderId === "string" && /^CHEF-/.test(orderId);
-      if (!isSyntheticOrder) {
+      if (!isSyntheticOrder && !isChef) {
+        var orderUpdatePayload = {
+          sheets_payload: sheetsPayload,
+          is_promo: false,
+          extra_discount: 0,
+          placed_by_auth_user_id: authUserId,
+        };
         dbClient
           .from("orders")
-          .update({
-            sheets_payload: sheetsPayload,
-            is_promo: false,
-            extra_discount: 0,
-          })
+          .update(orderUpdatePayload)
           .eq("id", orderId)
           .then(function () {});
       }
 
       sendToSheetsWithRetry(sheetsPayload, authToken, 3, proxyUrl, apiKey)
         .then(function () {
-          if (!isSyntheticOrder) {
+          // sheets_sent: solo LK (Chef.orders no deja update anon por RLS).
+          if (!isSyntheticOrder && !isChef) {
             dbClient
               .from("orders")
               .update({ sheets_sent: true })
@@ -3171,9 +3423,33 @@
       return;
     }
     injectCSS();
-    // Crear grid de 6 cards
-    mount.innerHTML = '<div class="scot-grid" id="scotGrid"></div>';
+    // Toolbar (actualizar lista de precios) + grid de cards
+    mount.innerHTML =
+      '<div class="scot-toolbar" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">' +
+        '<button type="button" id="scotUpdPricesBtn" style="padding:7px 12px;border:1px solid var(--border,#d0d0d0);border-radius:8px;background:var(--surface,#fff);cursor:pointer;font-size:13px">⬆ Actualizar lista de precios (xlsx)</button>' +
+        '<input type="file" id="scotUpdPricesFile" accept=".xlsx,.xls" style="display:none" />' +
+        '<span id="scotUpdPricesMsg" style="font-size:12px;color:var(--text3,#888)"></span>' +
+      '</div>' +
+      '<div class="scot-grid" id="scotGrid"></div>';
     var grid = mount.querySelector("#scotGrid");
+    (function () {
+      var btn = mount.querySelector("#scotUpdPricesBtn");
+      var fileEl = mount.querySelector("#scotUpdPricesFile");
+      var msgEl = mount.querySelector("#scotUpdPricesMsg");
+      function setMsg(t, kind) {
+        if (!msgEl) return;
+        msgEl.textContent = t;
+        msgEl.style.color = kind === "err" ? "#c0392b" : kind === "ok" ? "#1e8e3e" : "var(--text3,#888)";
+      }
+      if (btn && fileEl) {
+        btn.addEventListener("click", function () { fileEl.click(); });
+        fileEl.addEventListener("change", function () {
+          var f = fileEl.files && fileEl.files[0];
+          fileEl.value = "";
+          if (f) updateSuperPricesFromFile(f, setMsg);
+        });
+      }
+    })();
     cardInstances = [];
     for (var i = 0; i < CARD_COUNT; i++) {
       var cardRoot = document.createElement("div");

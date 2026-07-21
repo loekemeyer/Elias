@@ -1,0 +1,15 @@
+# Preservar LF tal como estan en disco.
+# Sin esto git normaliza a CRLF en Windows y los diffs del port
+# quedan 100% ruido.
+* -text
+
+# Binarios explicitos
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.pdf binary
+*.zip binary
+*.woff2 binary

@@ -1,9 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap de Tierra Nativa SA.
+
+  Solo se listan las DOS entradas publicas. historial.html, sugerencias.html
+  y admin.html quedan afuera a proposito: su contenido vive detras del login
+  de Supabase, no es rastreable, y ademas llevan <meta name="robots"
+  content="noindex"> en su head.
+
+  NOTA DE DOMINIO (2026-07-21): el dominio del negocio es
+  tierravintage.com.ar, pero al momento de escribir esto el sitio se sirve
+  desde GitHub Pages (loekemeyer.github.io/Elias/) y tierravintage.com.ar
+  tiene el certificado TLS vencido. Se declara el dominio propio porque es
+  el canonico del negocio; si la publicacion definitiva queda en otra URL,
+  hay que actualizar estas <loc> y el Sitemap: de robots.txt.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <url>
-    <loc>http://tierravintage.com.ar/</loc>
+    <loc>https://tierravintage.com.ar/</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://tierravintage.com.ar/mayorista.html</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 
 </urlset>

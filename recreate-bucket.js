@@ -1,6 +1,8 @@
 /**
  * recreate-bucket.js
  *
+ * Requiere .env con SUPABASE_SERVICE_ROLE_KEY (ver .env.example).
+ *
  * Borra el bucket products-images y lo recrea, luego sube todas
  * las imágenes desde la carpeta backup-images/.
  *
@@ -11,19 +13,16 @@
  *   node recreate-bucket.js --run    ← ejecuta los cambios reales
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const { createAdminClient } = require("./supabase-admin-client");
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime-types");
 
-const SUPABASE_URL = "https://zjvpzqhbekxnwxdczpof.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnB6cWhiZWt4bnd4ZGN6cG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDAyNTI5OSwiZXhwIjoyMDg5NjAxMjk5fQ.kPO2Ku3lAI-c5wC7STD-AIRcI6ww9PKG60Vsn_UJIu4";
 const BUCKET = "products-images";
 const BACKUP_DIR = path.join(__dirname, "backup-images");
 
 const DRY_RUN = !process.argv.includes("--run");
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createAdminClient();
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
