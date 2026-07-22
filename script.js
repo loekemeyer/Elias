@@ -1370,7 +1370,7 @@ async function loadProductsFromDB() {
             : Number(p.orden_catalogo),
         description: p.description,
         uxb: p.uxb,
-        images: Array.isArray(p.images) ? p.images : [],
+        images: p.images ?? [], // string JSON (RPC) o array (SELECT): getProductImages() parsea ambos
         // ✅ Nuevo parámetro (si el RPC todavía no lo devuelve, queda null)
         badge_status: p.badge_status
           ? String(p.badge_status).trim().toUpperCase()
@@ -1408,7 +1408,7 @@ async function loadProductsFromDB() {
           : Number(p.orden_catalogo),
       description: p.description,
       uxb: p.uxb,
-      images: Array.isArray(p.images) ? p.images : [],
+      images: p.images ?? [], // string JSON (RPC) o array (SELECT): getProductImages() parsea ambos
       // ✅ Nuevo parámetro
       badge_status: p.badge_status
         ? String(p.badge_status).trim().toUpperCase()
@@ -1472,7 +1472,7 @@ async function loadProductsFromDB() {
     description: p.description,
     list_price: p.list_price,
     uxb: p.uxb,
-    images: Array.isArray(p.images) ? p.images : [],
+    images: p.images ?? [], // string JSON (RPC) o array (SELECT): getProductImages() parsea ambos
     // ✅ Nuevo parámetro
     badge_status: p.badge_status
       ? String(p.badge_status).trim().toUpperCase()
@@ -3881,16 +3881,26 @@ function renderProducts() {
       // Cada subcategoría es su propia sección: título (fuera del grid) +
       // su propio .products-grid. Así el título no hereda grid-auto-rows:1fr
       // (que le daba la altura de una card → hueco gigante).
-      bodyHtml = subcatsOrdered
-        .map((sub) => {
-          const prods = groups.get(sub) || [];
-          prods.sort(getSortComparator());
+      // Cada colección (subcategoría) es un BLOQUE que fluye dentro del ancho
+      // de 4 columnas. Así dos colecciones de 2 quedan lado a lado (2+2 = 4),
+      // una de 4 ocupa la fila entera y una de 3 cae sola con un hueco al final
+      // — en vez de una grilla por colección que dejaba espacios muertos.
+      // El ancho del bloque lo fija --items (ver .collection-cards en el CSS).
+      bodyHtml =
+        `<div class="collections-flow">` +
+        subcatsOrdered
+          .map((sub) => {
+            const prods = groups.get(sub) || [];
+            prods.sort(getSortComparator());
 
-          const subtitle = `<div class="subcategory-title">${sub}</div>`;
-          const cards = prods.map(buildCard).join("");
-          return `${subtitle}<div class="products-grid">${cards}</div>`;
-        })
-        .join("");
+            const cards = prods.map(buildCard).join("");
+            return `<section class="collection-block" style="--items:${prods.length}">
+              <div class="subcategory-title">${sub}</div>
+              <div class="collection-cards">${cards}</div>
+            </section>`;
+          })
+          .join("") +
+        `</div>`;
     } else {
       const cardsHtml = items.map(buildCard).join("");
       bodyHtml = `<div class="products-grid">${cardsHtml}</div>`;
