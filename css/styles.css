@@ -560,59 +560,78 @@ body {
 /* ============================================================
    COLECCIONES (subcategorías de Cuadros) — empaquetado en fila
    ------------------------------------------------------------
-   Cada colección es un bloque (título + sus cards) que fluye dentro
-   del ancho de 4 columnas. Dos colecciones de 2 quedan lado a lado
-   (2+2 = 4), una de 4 ocupa la fila entera y una de 3 cae sola con
-   un hueco al final — evitando los espacios muertos que dejaba una
-   grilla separada por colección.
-   El ancho de cada bloque = min(items, --cap) columnas; --cap baja
-   por breakpoint para mantenerlo responsive.
+   Grilla de 4 columnas; cada colección es un bloque que ocupa
+   min(productos, 4) columnas vía --span (lo fija el JS). Con subgrid
+   las cards comparten el ancho de columna de la grilla (se achican
+   para que entren 4), así dos colecciones de 2 quedan lado a lado
+   (2+2 = 4), una de 4 llena la fila y una de 3 cae sola con un hueco
+   al final. Sin subgrid cada colección cae en su propia grilla
+   apilada — degradación limpia, sin romper el layout.
    ============================================================ */
+/* Base / fallback (sin subgrid): cada colección = grilla propia apilada. */
 .collections-flow {
-  --cap: 4; /* columnas máximas por bloque (desktop ≥1200px) */
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 25px; /* mismo gap que la grilla → alinea como 4 columnas */
+  display: block;
 }
 .collection-block {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 280px));
+  justify-content: center;
+  gap: 25px;
+  align-content: start;
+  margin-bottom: 28px;
   min-width: 0;
 }
-.collection-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 280px);
-  grid-auto-rows: 1fr;
-  gap: 25px;
-  justify-content: start;
-  align-items: stretch;
-  /* ancho = tantas columnas de 280px como items, con tope --cap */
-  width: calc(
-    min(var(--items, 1), var(--cap)) * 280px +
-      (min(var(--items, 1), var(--cap)) - 1) * 25px
-  );
+.collection-block > .subcategory-title {
+  grid-column: 1 / -1;
+  align-self: end;
 }
 @media (max-width: 1199px) and (min-width: 901px) {
-  .collections-flow {
-    --cap: 3;
+  .collection-block {
+    grid-template-columns: repeat(3, minmax(0, 280px));
   }
 }
-/* < 901px: sin empaquetado. Cada colección ocupa su propia fila con una
-   grilla responsive normal (con 2/1 columnas el hueco ya es mínimo). */
 @media (max-width: 900px) {
-  .collections-flow {
-    display: block;
-  }
-  .collection-cards {
-    width: auto;
-    grid-template-columns: repeat(2, 1fr);
+  .collection-block {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 360px) {
-  .collection-cards {
+  .collection-block {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Con subgrid: los bloques empaquetan dentro de la grilla de 4 columnas.
+   El span se recorta solo al nº de columnas disponibles y subgrid
+   reajusta las cards → responsive sin recalcular en JS. */
+@supports (grid-template-columns: subgrid) {
+  .collections-flow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 280px));
+    justify-content: center;
+    align-items: start;
+    gap: 25px;
+  }
+  .collection-block {
+    grid-column: span var(--span, 1);
+    grid-template-columns: subgrid;
+    justify-content: initial;
+    margin-bottom: 0;
+  }
+  @media (max-width: 1199px) and (min-width: 901px) {
+    .collections-flow {
+      grid-template-columns: repeat(3, minmax(0, 280px));
+    }
+  }
+  @media (max-width: 900px) {
+    .collections-flow {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 360px) {
+    .collections-flow {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
