@@ -415,6 +415,69 @@ function pick(obj, keys) {
   return out;
 }
 
+/***********************
+ * MEDIDAS DE CUADROS (filtro por tamaño)
+ * La medida vive en products.medidas (text[]), pero para el filtro se deriva
+ * de la description, que SIEMPRE está disponible (logueado o no, RPC o select
+ * directo). Un "set" trae varias (ej. "20*30,30*40,40*50"). Si la columna
+ * medidas viene en el producto, se prioriza; si no, se parsea el texto.
+ ***********************/
+function isCuadro(p) {
+  return (
+    String(p && p.category ? p.category : "")
+      .trim()
+      .toLowerCase() === SUBCATEGORY_PARENT
+  );
+}
+
+function medidasFromDescription(desc) {
+  const out = [];
+  const re = /(\d{1,3})\s*[*×]\s*(\d{1,3})/g;
+  const s = String(desc || "");
+  let m;
+  while ((m = re.exec(s)) !== null) out.push(m[1] + "*" + m[2]);
+  return out;
+}
+
+function getProductMedidas(p) {
+  if (!p) return [];
+
+  // 1) Columna medidas si vino (array real o string tipo "{20*30,30*40}").
+  let raw = p.medidas;
+  if (Array.isArray(raw)) {
+    const arr = raw.map((x) => String(x).trim()).filter(Boolean);
+    if (arr.length) return arr;
+  } else if (typeof raw === "string" && raw.trim()) {
+    const s = raw.trim();
+    if (s.startsWith("{") && s.endsWith("}")) {
+      const arr = s
+        .slice(1, -1)
+        .split(",")
+        .map((x) => x.replace(/^"|"$/g, "").trim())
+        .filter(Boolean);
+      if (arr.length) return arr;
+    }
+  }
+
+  // 2) Fallback: derivar de la description (solo tiene sentido en Cuadros).
+  return isCuadro(p) ? medidasFromDescription(p.description) : [];
+}
+
+function compareMedida(a, b) {
+  const pa = String(a).split("*").map(Number);
+  const pb = String(b).split("*").map(Number);
+  return (pa[0] || 0) - (pb[0] || 0) || (pa[1] || 0) - (pb[1] || 0);
+}
+
+// Medidas distintas presentes en los Cuadros del catálogo, ordenadas.
+function getAllMedidas() {
+  const set = new Set();
+  (products || []).forEach((p) => {
+    if (isCuadro(p)) getProductMedidas(p).forEach((m) => set.add(m));
+  });
+  return Array.from(set).sort(compareMedida);
+}
+
 async function getWebOrderDiscount() {
   try {
     const { data, error } = await supabaseClient
@@ -550,6 +613,7 @@ function checkItemAnomaly(anomalyMap, codArt, cajasOrdered) {
 // Filtros UI (DESKTOP / estado aplicado)
 let filterAll = true; // "Todos" ON por default
 let filterCats = new Set(); // acumulativo
+let filterMedidas = new Set(); // ✅ medidas de Cuadros seleccionadas
 let searchTerm = ""; // buscador
 let filterNewOnly = false; // ✅ NUEVOS (desktop + mobile)
 let filterMyAssortment = false; // ✅ MI SURTIDO (18 meses)
@@ -558,6 +622,7 @@ let myAssortmentIds = null; // Set<string> de product_id
 // ===== Mobile Filters (pendientes) =====
 let pendingFilterAll = true;
 let pendingFilterCats = new Set();
+let pendingFilterMedidas = new Set(); // ✅ medidas de Cuadros (overlay mobile)
 let pendingFilterNewOnly = false; // ✅ NUEVOS (overlay mobile)
 
 /***********************
@@ -1662,6 +1727,28 @@ function renderCategoriesSidebar() {
   if (!list) return;
 
   const ordered = getOrderedCategoriesFrom(products);
+  const allMedidas = getAllMedidas();
+
+  // Sub-lista de medidas (checkboxes) que se muestra debajo de "Cuadros".
+  const medidasBlock =
+    allMedidas.length > 0
+      ? `<div class="medida-list">${allMedidas
+          .map(
+            (m) => `
+              <label class="medida-row ${filterMedidas.has(m) ? "active" : ""}">
+                <span class="medida-text">${m}</span>
+                <input
+                  type="checkbox"
+                  class="filter-medida"
+                  data-medida="${m}"
+                  ${filterMedidas.has(m) ? "checked" : ""}
+                >
+                <span class="medida-box"></span>
+              </label>
+            `,
+          )
+          .join("")}</div>`
+      : "";
 
   list.innerHTML = `
     <label class="toggle-row ${filterAll ? "active" : ""}">
@@ -1673,8 +1760,8 @@ function renderCategoriesSidebar() {
     <div class="toggle-sep"></div>
 
     ${ordered
-      .map(
-        (cat) => `
+      .map((cat) => {
+        const row = `
           <label class="toggle-row ${filterCats.has(cat) ? "active" : ""}">
             <span class="toggle-text">${cat}</span>
             <input
@@ -1685,8 +1772,12 @@ function renderCategoriesSidebar() {
             >
             <span class="toggle-ui"></span>
           </label>
-        `,
-      )
+        `;
+        // Debajo de Cuadros, las medidas como sub-filtro.
+        return String(cat).trim().toLowerCase() === SUBCATEGORY_PARENT
+          ? row + medidasBlock
+          : row;
+      })
       .join("")}
   `;
 
@@ -1696,6 +1787,7 @@ function renderCategoriesSidebar() {
       filterAll = all.checked;
       if (filterAll) filterCats.clear();
       if (!filterAll && filterCats.size === 0) filterAll = true;
+      filterMedidas.clear(); // "Todos" limpia también el filtro de medidas
 
       renderCategoriesSidebar();
       renderCategoriesMenu?.();
@@ -1712,9 +1804,22 @@ function renderCategoriesSidebar() {
 
       if (filterCats.size > 0) filterAll = false;
       if (filterCats.size === 0) filterAll = true;
+      filterMedidas.clear(); // elegir categoría resetea el sub-filtro de medidas
 
       renderCategoriesSidebar();
       renderCategoriesMenu?.();
+      renderProducts();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  list.querySelectorAll(".filter-medida").forEach((inp) => {
+    inp.addEventListener("change", () => {
+      const m = inp.dataset.medida;
+      if (inp.checked) filterMedidas.add(m);
+      else filterMedidas.delete(m);
+
+      renderCategoriesSidebar();
       renderProducts();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
@@ -3563,8 +3668,16 @@ function setSearchInputValue(val) {
 function getFilteredProducts() {
   let list = products.slice();
 
-  // Categorías
-  if (!filterAll) {
+  // Medidas (Cuadros): si hay alguna seleccionada, MANDA sobre el filtro de
+  // categoría → muestra los Cuadros que incluyan alguna de esas medidas
+  // (un set cuenta si tiene al menos una). Si no hay medidas activas, aplica
+  // el filtro de categorías normal.
+  if (filterMedidas.size > 0) {
+    list = list.filter((p) => {
+      const ms = getProductMedidas(p);
+      return ms.some((m) => filterMedidas.has(m));
+    });
+  } else if (!filterAll) {
     list = list.filter((p) => filterCats.has(String(p.category || "").trim()));
   }
 
@@ -4573,19 +4686,34 @@ function renderCategoriasOverlayUI() {
 
   const ordered = getOrderedCategoriesFrom(products);
   const isOn = (cat) => pendingFilterCats.has(cat);
+  const allMedidas = getAllMedidas();
+
+  // Chips de medidas (sub-filtro de Cuadros) para el overlay mobile.
+  const medidasBlock =
+    allMedidas.length > 0
+      ? `<div class="mf-medidas">${allMedidas
+          .map(
+            (m) =>
+              `<button type="button" class="mf-chip ${pendingFilterMedidas.has(m) ? "on" : ""}" data-medida="${m}">${m}</button>`,
+          )
+          .join("")}</div>`
+      : "";
 
   grid.innerHTML = `
     <button type="button" class="mf-btn mf-btn-all ${pendingFilterAll ? "on" : ""}" data-all="1">
       Todos los artículos
     </button>
     ${ordered
-      .map(
-        (cat) => `
+      .map((cat) => {
+        const btn = `
           <button type="button" class="mf-btn ${isOn(cat) ? "on" : ""}" data-cat="${cat}">
             ${cat}
           </button>
-        `,
-      )
+        `;
+        return String(cat).trim().toLowerCase() === SUBCATEGORY_PARENT
+          ? btn + medidasBlock
+          : btn;
+      })
       .join("")}
   `;
 
@@ -4602,6 +4730,16 @@ function renderCategoriasOverlayUI() {
         else pendingFilterCats.add(cat);
         if (pendingFilterCats.size === 0) pendingFilterAll = true;
       }
+      pendingFilterMedidas.clear(); // elegir categoría resetea las medidas
+      renderCategoriasOverlayUI();
+    });
+  });
+
+  grid.querySelectorAll(".mf-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const m = chip.dataset.medida;
+      if (pendingFilterMedidas.has(m)) pendingFilterMedidas.delete(m);
+      else pendingFilterMedidas.add(m);
       renderCategoriasOverlayUI();
     });
   });
@@ -4612,6 +4750,7 @@ function openCategoriasOverlay() {
   if (!ov) return;
   pendingFilterAll = filterAll;
   pendingFilterCats = new Set(filterCats);
+  pendingFilterMedidas = new Set(filterMedidas);
   renderCategoriasOverlayUI();
   ov.classList.add("open");
   ov.setAttribute("aria-hidden", "false");
@@ -4625,8 +4764,10 @@ function closeCategoriasOverlay() {
 function applyPendingCategorias() {
   filterAll = !!pendingFilterAll;
   filterCats = new Set(Array.from(pendingFilterCats || []));
+  filterMedidas = new Set(Array.from(pendingFilterMedidas || []));
   closeCategoriasOverlay();
   renderProducts();
+  if (typeof renderCategoriesSidebar === "function") renderCategoriesSidebar();
 }
 window.openCategoriasOverlay = openCategoriasOverlay;
 window.closeCategoriasOverlay = closeCategoriasOverlay;
