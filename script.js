@@ -3881,12 +3881,12 @@ function renderProducts() {
       // Cada subcategoría es su propia sección: título (fuera del grid) +
       // su propio .products-grid. Así el título no hereda grid-auto-rows:1fr
       // (que le daba la altura de una card → hueco gigante).
-      // Cada colección (subcategoría) es un BLOQUE dentro de una grilla de 4
-      // columnas (subgrid). El bloque ocupa tantas columnas como productos
-      // tenga (tope 4) → dos colecciones de 2 caen lado a lado (2+2 = 4), una
-      // de 4 llena la fila y una de 3 se queda sola con un hueco al final. Las
-      // cards comparten el ancho de columna de la grilla (se achican para que
-      // entren 4), en vez de una grilla por colección que dejaba espacios.
+      // Cada colección (subcategoría) es un grupo flex cuyo ancho = --span
+      // columnas de la grilla de 4 (--span = min(productos, 4)). Con flex-wrap:
+      // dos colecciones de 2 caen lado a lado (2+2 = 4), una de 4 llena la
+      // fila y una de 3 se queda sola con un hueco al final. Las cards de cada
+      // grupo se reparten ese ancho (se achican para que entren 4), en vez de
+      // una grilla por colección que dejaba espacios muertos.
       bodyHtml =
         `<div class="collections-flow">` +
         subcatsOrdered
@@ -3896,9 +3896,9 @@ function renderProducts() {
 
             const span = Math.min(prods.length, 4) || 1;
             const cards = prods.map(buildCard).join("");
-            return `<section class="collection-block" style="--span:${span}">
+            return `<section class="col-group" style="--span:${span}">
               <div class="subcategory-title">${sub}</div>
-              ${cards}
+              <div class="col-group-cards">${cards}</div>
             </section>`;
           })
           .join("") +
