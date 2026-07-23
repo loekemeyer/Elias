@@ -542,6 +542,67 @@ body {
   background: #eee;
   margin: 6px 0;
 }
+/* Sub-filtro de medidas (debajo de Cuadros en el sidebar) */
+.medida-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 8px;
+  padding-left: 16px;
+  border-left: 2px solid #ececec;
+  margin-left: 8px;
+}
+.medida-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.medida-row:hover {
+  background: #f5f5f5;
+}
+.medida-row.active {
+  background: #eef2f6;
+  font-weight: 600;
+}
+.medida-text {
+  font-size: 12.5px;
+  color: #444;
+}
+.medida-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.medida-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid #bcbcbc;
+  background: #fff;
+  flex: 0 0 auto;
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.medida-row input:checked + .medida-box {
+  background: #35546f;
+  border-color: #35546f;
+}
+.medida-row input:checked + .medida-box::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 /* Productos grid — 4 cards max, cada una con tope para que no se estiren
    en pantallas grandes. Cuando sobra espacio, la grilla queda centrada.
    Se ve igual con/sin login. Responsive overrides (≤1199 → 3 cols, ≤900
@@ -1034,6 +1095,32 @@ body {
 .mf-btn-all.on {
   background: #111;
   border-style: solid;
+}
+/* Chips de medidas (sub-filtro de Cuadros) en el overlay mobile */
+.mf-medidas {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 0 4px 14px;
+  border-left: 2px solid #ececec;
+  margin-left: 4px;
+}
+.mf-chip {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mf-chip.on {
+  border-color: #35546f;
+  background: #35546f;
+  color: #fff;
 }
 .mf-section-label {
   grid-column: 1 / -1;
