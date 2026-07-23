@@ -119,16 +119,16 @@ function getProductImages(productOrCod) {
     }
   }
 
-  // 2) Fallback: una sola imagen directa por codigo.
+  // 2) Fallback: un unico intento .webp por codigo. En Tierra Nativa las fotos
+  // viven en carpetas por codigo (columna images); {cod}.webp en la raiz del
+  // bucket normalmente NO existe, asi que si un producto no tiene images no
+  // tiene sentido disparar 4 requests (.webp/.jpg/.jpeg/.png) que fallan todas.
+  // Con un solo slide, buildCarouselHtml usa la rama single -> onerror muestra
+  // no-image.jpg (placeholder limpio en vez de una card en blanco).
   if (!urls.length) {
     const c = encodeURIComponent(cod);
     const v = encodeURIComponent(IMG_VERSION);
-    urls = [
-      `${BASE_IMG}${c}.webp?v=${v}`,
-      `${BASE_IMG}${c}.jpg?v=${v}`,
-      `${BASE_IMG}${c}.jpeg?v=${v}`,
-      `${BASE_IMG}${c}.png?v=${v}`,
-    ];
+    urls = [`${BASE_IMG}${c}.webp?v=${v}`];
   }
 
   productImagesCache.set(cod, urls);
@@ -196,7 +196,7 @@ function buildCarouselHtml(pid, images, description) {
                 const carousel = this.closest('.product-carousel');
                 slide?.remove();
                 const remaining = carousel?.querySelectorAll('.carousel-slide');
-                if (!remaining?.length) { carousel?.remove(); }
+                if (!remaining?.length) { if (carousel) carousel.innerHTML = '&lt;div class=&quot;carousel-slide active&quot;&gt;&lt;img src=&quot;img/no-image.jpg&quot; alt=&quot;&quot;&gt;&lt;/div&gt;'; }
                 else if (remaining?.length === 1) { carousel?.querySelectorAll('.carousel-btn').forEach(b => b.style.display='none'); }
               "
             >
@@ -3881,11 +3881,12 @@ function renderProducts() {
       // Cada subcategoría es su propia sección: título (fuera del grid) +
       // su propio .products-grid. Así el título no hereda grid-auto-rows:1fr
       // (que le daba la altura de una card → hueco gigante).
-      // Cada colección (subcategoría) es un BLOQUE que fluye dentro del ancho
-      // de 4 columnas. Así dos colecciones de 2 quedan lado a lado (2+2 = 4),
-      // una de 4 ocupa la fila entera y una de 3 cae sola con un hueco al final
-      // — en vez de una grilla por colección que dejaba espacios muertos.
-      // El ancho del bloque lo fija --items (ver .collection-cards en el CSS).
+      // Cada colección (subcategoría) es un grupo flex cuyo ancho = --span
+      // columnas de la grilla de 4 (--span = min(productos, 4)). Con flex-wrap:
+      // dos colecciones de 2 caen lado a lado (2+2 = 4), una de 4 llena la
+      // fila y una de 3 se queda sola con un hueco al final. Las cards de cada
+      // grupo se reparten ese ancho (se achican para que entren 4), en vez de
+      // una grilla por colección que dejaba espacios muertos.
       bodyHtml =
         `<div class="collections-flow">` +
         subcatsOrdered
@@ -3893,10 +3894,11 @@ function renderProducts() {
             const prods = groups.get(sub) || [];
             prods.sort(getSortComparator());
 
+            const span = Math.min(prods.length, 4) || 1;
             const cards = prods.map(buildCard).join("");
-            return `<section class="collection-block" style="--items:${prods.length}">
+            return `<section class="col-group" style="--span:${span}">
               <div class="subcategory-title">${sub}</div>
-              <div class="collection-cards">${cards}</div>
+              <div class="col-group-cards">${cards}</div>
             </section>`;
           })
           .join("") +
