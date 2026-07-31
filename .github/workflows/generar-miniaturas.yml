@@ -1,0 +1,39 @@
+name: Generar miniaturas
+
+# Se dispara a mano desde la pestaña "Actions" del repo (botón "Run workflow").
+# Genera las miniaturas _sm de las fotos en el bucket de Supabase, para que la
+# grilla del catálogo cargue liviano. Corre en los servidores de GitHub, así no
+# hace falta instalar ni tocar la terminal.
+#
+# Requiere un secreto en el repo:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#   Name:  SUPABASE_SERVICE_ROLE_KEY
+#   Value: la service_role key (Supabase -> Project Settings -> API -> service_role)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Regenerar aunque ya existan (--force)"
+        type: boolean
+        default: false
+
+jobs:
+  miniaturas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: npm install @supabase/supabase-js sharp dotenv
+
+      - name: Generar miniaturas
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node make-thumbnails.js --run ${{ inputs.force && '--force' || '' }}
