@@ -14413,3 +14413,9 @@ a.user-menu-item:hover {
   background: #fff;
   transform: translateY(-50%) scale(1.1);
 }
+
+/* Flechas del carrusel ocultas: por ahora hay una sola imagen por
+   producto. Para reactivarlas, borrar esta regla. */
+.carousel-btn {
+  display: none !important;
+}
