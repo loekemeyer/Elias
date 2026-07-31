@@ -1270,10 +1270,14 @@ async function refreshAuthState(sessionOverride) {
   // Nativa la condicion sigue siendo correcta (su admin tambien es cod 1,
   // verificado), pero el nombre y el comentario decian lo contrario de lo
   // que hacen. Renombrado para que se entienda.
-  var codAdminGate = String(customerProfile?.cod_cliente || "").trim();
-  var isOwnerAdmin = isAdmin && codAdminGate === "1";
+  // El acceso real al panel lo protege el 2FA por mail (OTP) de admin.html,
+  // que solo deja entrar al admin dueno (CUIT PPP). Por eso alcanza con mostrar
+  // el link a cualquier usuario verificado como admin (fila en la tabla admins).
+  var isOwnerAdmin = isAdmin;
   if ($("menuAdminPanel"))
     $("menuAdminPanel").style.display = isOwnerAdmin ? "block" : "none";
+  if ($("menuAdminPanelMobile"))
+    $("menuAdminPanelMobile").style.display = isOwnerAdmin ? "block" : "none";
 
   // Acceso al "Formato <cliente>": solo clientes con formato propio (OSA, TyL…).
   if ($("menuFormatoOsa")) {
@@ -10056,14 +10060,10 @@ let lokeProducts = [];
 let hasLokeAccess = false;
 
 async function checkLokeAccess() {
-  if (!currentSession || !customerProfile?.id) {
-    hasLokeAccess = false;
-    return;
-  }
-  var result = await supabaseClient.rpc("has_loke_access", {
-    p_customer_id: customerProfile.id,
-  });
-  hasLokeAccess = !result.error && result.data === true;
+  // Linea Loke retirada de Tierra Nativa: no forma parte de este sitio.
+  // Se deja el acceso siempre desactivado para que la seccion quede
+  // inalcanzable y no se ejecute nada de la logica de Loke.
+  hasLokeAccess = false;
 }
 
 function updateLokeButton() {

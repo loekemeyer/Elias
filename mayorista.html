@@ -18,9 +18,9 @@
       name="description"
       content="Catálogo mayorista de Tierra Nativa SA. Cuadros, portarretratos y objetos de decoración. Consultá precios y hacé tu pedido online."
     />
-    <link rel="stylesheet" href="css/styles.css?v=20260722-tn8" />
+    <link rel="stylesheet" href="css/styles.css?v=20260731-tn9" />
     <link rel="stylesheet" href="css/analisis-venta-cliente.css?v=20260515f" />
-    <link rel="icon" type="image/jpeg" href="img/favicon.jpg" />
+    <link rel="icon" type="image/png" href="img/favicon.png" />
     <link rel="icon" href="img/favicon.png" />
     <link rel="shortcut icon" href="img/favicon.png" />
   </head>
@@ -67,16 +67,6 @@
 
           <button
             type="button"
-            id="lokeLink"
-            class="nav-link"
-            onclick="showSection('loke')"
-            style="display: none"
-          >
-            <img src="img/loke-btn.gif" alt="Línea Loke" class="loke-btn-gif" />
-          </button>
-
-          <button
-            type="button"
             id="cartLink"
             class="nav-link nav-link-cart"
             onclick="showSection('carrito')"
@@ -94,19 +84,8 @@
           </button>
         </div>
 
-        <!-- ✅ MOBILE ICONS: Loke + Carrito + Perfil -->
+        <!-- ✅ MOBILE ICONS: Carrito + Perfil -->
         <div id="mobileIcons" class="mobile-icons" aria-label="Accesos rápidos">
-          <button
-            id="mobileLokeBtn"
-            class="micon-btn micon-loke"
-            type="button"
-            aria-label="Loke"
-            style="display: none"
-            onclick="showSection('loke')"
-          >
-            <img src="img/loke-btn.gif" alt="Loke" class="micon-loke-img" />
-          </button>
-
           <button
             id="mobileCartBtn"
             class="micon-btn micon-cart"
@@ -304,6 +283,15 @@
       >
         <span class="user-menu-label">Análisis de tus compras</span>
         <span class="user-menu-new-badge" aria-label="Nuevo">NUEVO</span>
+      </a>
+      <a
+        class="user-menu-item"
+        id="menuAdminPanelMobile"
+        href="admin.html"
+        onclick="closeMobileUserMenu();"
+        style="display: none"
+      >
+        <span class="user-menu-label">Panel Admin</span>
       </a>
       <div class="user-menu-sep" role="separator" aria-hidden="true"></div>
 
@@ -1749,7 +1737,7 @@
 
     <!-- Tu JS -->
     <script src="./version.js?v=270"></script>
-    <script src="script.js?v=20260722-tn8"></script>
+    <script src="script.js?v=20260731-tn9"></script>
     <!-- Análisis Venta Cliente embebido en #perfil (modo customer view) -->
     <script src="analisis-venta-cliente.js?v=20260520a"></script>
   </body>

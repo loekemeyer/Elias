@@ -84,19 +84,19 @@ body {
 
 /* Botón "Enviá tu Pedido" — rojo destacado en el header */
 .nav-link-cart {
-  background: #d00000 !important;
+  background: #0a1f44 !important;
   border: 0 !important;
   border-radius: 10px !important;
   padding: 8px 14px !important;
   gap: 8px !important;
-  box-shadow: 0 2px 8px rgba(208, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(10, 31, 68, 0.35);
   transition: background 0.15s ease, transform 0.1s ease,
     box-shadow 0.15s ease;
 }
 
 .nav-link-cart:hover {
-  background: #ff0000 !important;
-  box-shadow: 0 4px 14px rgba(255, 0, 0, 0.4);
+  background: #123163 !important;
+  box-shadow: 0 4px 14px rgba(18, 49, 99, 0.45);
 }
 
 .nav-link-cart:active {
