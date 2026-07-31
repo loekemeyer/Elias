@@ -10,7 +10,7 @@
 // que corre en produccion sea auditable desde git.
 //
 // UNICO CAMBIO respecto de la version desplegada (version 1):
-//   RECIPIENT_EMAIL: loekemeyer.n8n@gmail.com -> tierranativ@hotmail.com
+//   RECIPIENT_EMAIL: loekemeyer.n8n@gmail.com -> tierranativa.grafica@gmail.com
 //
 // El resto ya estaba correctamente adaptado a Tierra Nativa: el CUIT del admin
 // y el branding del mail (logo "TN", "Tierra Nativa SA").
@@ -23,7 +23,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PPP_ADMIN_CUIT = "30710305362";
-const RECIPIENT_EMAIL = "tierranativ@hotmail.com";
+const RECIPIENT_EMAIL = "tierranativa.grafica@gmail.com";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY =
