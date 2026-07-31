@@ -614,6 +614,7 @@ function checkItemAnomaly(anomalyMap, codArt, cajasOrdered) {
 let filterAll = true; // "Todos" ON por default
 let filterCats = new Set(); // acumulativo
 let filterMedidas = new Set(); // ✅ medidas de Cuadros seleccionadas
+let medidasExpanded = false; // ✅ "Ver más" de medidas (oculta las no destacadas)
 let searchTerm = ""; // buscador
 let filterNewOnly = false; // ✅ NUEVOS (desktop + mobile)
 let filterMyAssortment = false; // ✅ MI SURTIDO (18 meses)
@@ -1748,16 +1749,22 @@ function renderCategoriesSidebar() {
   `;
 
   // Sub-lista de medidas (checkboxes) que se muestra debajo de "Cuadros".
-  // Primero las destacadas (con 🔥), después una fila vacía y el resto.
+  // Por defecto solo las destacadas (con 🔥); el resto queda oculto tras un
+  // "Ver más". Si hay una medida no destacada ya seleccionada, se abre solo.
+  const medidasExp = medidasExpanded || rest.some((m) => filterMedidas.has(m));
   const medidasBlock =
     allMedidas.length > 0
       ? `<div class="medida-list">${featured
           .map((m) => medidaRow(m, true))
           .join("")}${
-          featured.length && rest.length
-            ? '<div class="medida-gap" aria-hidden="true"></div>'
+          rest.length
+            ? `<button type="button" class="medida-vermas" id="medidaVerMas">${
+                medidasExp ? "Ver menos" : "Ver más"
+              }</button><div class="medida-rest" id="medidaRest"${
+                medidasExp ? "" : ' style="display:none"'
+              }>${rest.map((m) => medidaRow(m, false)).join("")}</div>`
             : ""
-        }${rest.map((m) => medidaRow(m, false)).join("")}</div>`
+        }</div>`
       : "";
 
   list.innerHTML = `
@@ -1834,6 +1841,16 @@ function renderCategoriesSidebar() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
   });
+
+  const verMasBtn = $("medidaVerMas");
+  if (verMasBtn) {
+    verMasBtn.addEventListener("click", () => {
+      medidasExpanded = !medidasExpanded;
+      const restEl = $("medidaRest");
+      if (restEl) restEl.style.display = medidasExpanded ? "" : "none";
+      verMasBtn.textContent = medidasExpanded ? "Ver menos" : "Ver más";
+    });
+  }
 }
 
 /***********************
@@ -4702,17 +4719,24 @@ function renderCategoriasOverlayUI() {
   const mfChip = (m, fire) =>
     `<button type="button" class="mf-chip ${pendingFilterMedidas.has(m) ? "on" : ""}" data-medida="${m}">${m}${fire ? " 🔥" : ""}</button>`;
 
-  // Chips de medidas (sub-filtro de Cuadros): destacadas primero (🔥), luego
-  // un corte de línea y el resto.
+  // Chips de medidas (sub-filtro de Cuadros): por defecto solo las destacadas
+  // (🔥); el resto queda oculto tras un "Ver más". Si hay una medida no
+  // destacada ya seleccionada, se abre solo.
+  const medidasExp =
+    medidasExpanded || rest.some((m) => pendingFilterMedidas.has(m));
   const medidasBlock =
     allMedidas.length > 0
       ? `<div class="mf-medidas">${featured
           .map((m) => mfChip(m, true))
           .join("")}${
-          featured.length && rest.length
-            ? '<div class="mf-medidas-break" aria-hidden="true"></div>'
+          rest.length
+            ? `<div class="mf-medidas-break" aria-hidden="true"></div><button type="button" class="mf-vermas" id="mfVerMas">${
+                medidasExp ? "Ver menos" : "Ver más"
+              }</button><div class="mf-medidas-rest" id="mfMedidasRest"${
+                medidasExp ? "" : ' style="display:none"'
+              }>${rest.map((m) => mfChip(m, false)).join("")}</div>`
             : ""
-        }${rest.map((m) => mfChip(m, false)).join("")}</div>`
+        }</div>`
       : "";
 
   grid.innerHTML = `
@@ -4759,6 +4783,16 @@ function renderCategoriasOverlayUI() {
       renderCategoriasOverlayUI();
     });
   });
+
+  const mfVerMas = $("mfVerMas");
+  if (mfVerMas) {
+    mfVerMas.addEventListener("click", () => {
+      medidasExpanded = !medidasExpanded;
+      const restEl = $("mfMedidasRest");
+      if (restEl) restEl.style.display = medidasExpanded ? "" : "none";
+      mfVerMas.textContent = medidasExpanded ? "Ver menos" : "Ver más";
+    });
+  }
 }
 
 function openCategoriasOverlay() {

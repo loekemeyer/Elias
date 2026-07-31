@@ -585,6 +585,42 @@ body {
   flex-basis: 100%;
   height: 0;
 }
+/* Botón "Ver más / Ver menos" de medidas (desktop sidebar) */
+.medida-vermas {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #0a1f44;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 10px;
+  text-decoration: underline;
+}
+.medida-rest {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* Botón "Ver más / Ver menos" de medidas (overlay mobile) */
+.mf-vermas {
+  flex-basis: 100%;
+  background: none;
+  border: none;
+  color: #0a1f44;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+  text-decoration: underline;
+}
+.mf-medidas-rest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
 .medida-row input {
   position: absolute;
   opacity: 0;
