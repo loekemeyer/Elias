@@ -112,7 +112,7 @@ window.hasLiveAdminSession = hasLiveAdminSession;
 // El destinatario real esta hardcodeado en la edge function admin-otp
 // (RECIPIENT_EMAIL, ver supabase/functions/admin-otp/index.ts). Cambiar
 // esta constante sin redesplegar la funcion hace que la UI mienta.
-var EMAIL_OTP_RECIPIENT_DISPLAY = "tierranativ@hotmail.com";
+var EMAIL_OTP_RECIPIENT_DISPLAY = "tierranativa.grafica@gmail.com";
 
 async function ensureEmailOtp() {
   // sessionStorage por tab: si ya verificó esta sesión de browser, no pide de nuevo
