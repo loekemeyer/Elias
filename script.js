@@ -478,6 +478,20 @@ function getAllMedidas() {
   return Array.from(set).sort(compareMedida);
 }
 
+// Medidas destacadas (van primero, en este orden y con 🔥). El resto va
+// después de una fila vacía, ordenado normal.
+const FEATURED_MEDIDAS = ["40*50", "30*40", "30*30", "20*30", "10*30"];
+
+// Separa las medidas en { featured, rest } respetando el orden pedido para las
+// destacadas y el orden por tamaño para las demás.
+function splitMedidas(all) {
+  const present = new Set(all);
+  const featured = FEATURED_MEDIDAS.filter((m) => present.has(m));
+  const feSet = new Set(featured);
+  const rest = all.filter((m) => !feSet.has(m)); // `all` ya viene ordenado
+  return { featured, rest };
+}
+
 async function getWebOrderDiscount() {
   try {
     const { data, error } = await supabaseClient
@@ -1728,26 +1742,32 @@ function renderCategoriesSidebar() {
 
   const ordered = getOrderedCategoriesFrom(products);
   const allMedidas = getAllMedidas();
+  const { featured, rest } = splitMedidas(allMedidas);
+
+  const medidaRow = (m, fire) => `
+    <label class="medida-row ${filterMedidas.has(m) ? "active" : ""}">
+      <span class="medida-text">${m}${fire ? ' <span class="medida-fire">🔥</span>' : ""}</span>
+      <input
+        type="checkbox"
+        class="filter-medida"
+        data-medida="${m}"
+        ${filterMedidas.has(m) ? "checked" : ""}
+      >
+      <span class="medida-box"></span>
+    </label>
+  `;
 
   // Sub-lista de medidas (checkboxes) que se muestra debajo de "Cuadros".
+  // Primero las destacadas (con 🔥), después una fila vacía y el resto.
   const medidasBlock =
     allMedidas.length > 0
-      ? `<div class="medida-list">${allMedidas
-          .map(
-            (m) => `
-              <label class="medida-row ${filterMedidas.has(m) ? "active" : ""}">
-                <span class="medida-text">${m}</span>
-                <input
-                  type="checkbox"
-                  class="filter-medida"
-                  data-medida="${m}"
-                  ${filterMedidas.has(m) ? "checked" : ""}
-                >
-                <span class="medida-box"></span>
-              </label>
-            `,
-          )
-          .join("")}</div>`
+      ? `<div class="medida-list">${featured
+          .map((m) => medidaRow(m, true))
+          .join("")}${
+          featured.length && rest.length
+            ? '<div class="medida-gap" aria-hidden="true"></div>'
+            : ""
+        }${rest.map((m) => medidaRow(m, false)).join("")}</div>`
       : "";
 
   list.innerHTML = `
@@ -4687,16 +4707,22 @@ function renderCategoriasOverlayUI() {
   const ordered = getOrderedCategoriesFrom(products);
   const isOn = (cat) => pendingFilterCats.has(cat);
   const allMedidas = getAllMedidas();
+  const { featured, rest } = splitMedidas(allMedidas);
 
-  // Chips de medidas (sub-filtro de Cuadros) para el overlay mobile.
+  const mfChip = (m, fire) =>
+    `<button type="button" class="mf-chip ${pendingFilterMedidas.has(m) ? "on" : ""}" data-medida="${m}">${m}${fire ? " 🔥" : ""}</button>`;
+
+  // Chips de medidas (sub-filtro de Cuadros): destacadas primero (🔥), luego
+  // un corte de línea y el resto.
   const medidasBlock =
     allMedidas.length > 0
-      ? `<div class="mf-medidas">${allMedidas
-          .map(
-            (m) =>
-              `<button type="button" class="mf-chip ${pendingFilterMedidas.has(m) ? "on" : ""}" data-medida="${m}">${m}</button>`,
-          )
-          .join("")}</div>`
+      ? `<div class="mf-medidas">${featured
+          .map((m) => mfChip(m, true))
+          .join("")}${
+          featured.length && rest.length
+            ? '<div class="mf-medidas-break" aria-hidden="true"></div>'
+            : ""
+        }${rest.map((m) => mfChip(m, false)).join("")}</div>`
       : "";
 
   grid.innerHTML = `
