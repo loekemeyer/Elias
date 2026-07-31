@@ -153,60 +153,46 @@ function primaryProductImage(product) {
  * El onerror va sacando slides rotos y, si queda uno solo, esconde las
  * flechas. Si no queda ninguno, se elimina el carrusel entero.
  */
+/**
+ * Devuelve la URL de la MINIATURA (~700px) a partir de la URL original,
+ * insertando "_sm" antes de la extensión:
+ *   .../631/1.webp?v=X  ->  .../631/1_sm.webp?v=X
+ * Las miniaturas las genera make-thumbnails.js en el bucket. Si todavía no
+ * existen, el onerror del <img> cae a la original (sin romper nada).
+ */
+function thumbUrl(url) {
+  return String(url || "").replace(/(\.[a-z0-9]+)(\?|#|$)/i, "_sm$1$2");
+}
+
+/**
+ * Imagen de producto. Por ahora hay UNA imagen por producto (flechas ocultas):
+ * se muestra solo la primera. La grilla carga la miniatura `_sm` (liviana);
+ * el zoom usa la original en alta calidad (data-full), que solo se descarga al
+ * hacer click. Si la miniatura no existe aún, el onerror cae a la original y,
+ * si esa también falla, al placeholder no-image.
+ */
 function buildCarouselHtml(pid, images, description) {
-  const imgs = Array.isArray(images) && images.length ? images : [];
+  const full = Array.isArray(images) && images.length ? images[0] : "";
   const alt = String(description || "").replace(/"/g, "&quot;");
 
-  if (!imgs.length) {
+  if (!full) {
     return `<div class="product-carousel empty" data-pid="${pid}"></div>`;
   }
 
-  if (imgs.length === 1) {
-    return `
-      <div class="product-carousel single" data-pid="${pid}">
-        <div class="carousel-slide active">
-          <img
-            id="img-${pid}"
-            src="${imgs[0]}"
-            loading="lazy"
-            decoding="async"
-            alt="${alt}"
-            onclick="openImgZoom(this.src, this.alt)"
-            onerror="this.onerror=null;this.src='img/no-image.jpg'"
-          >
-        </div>
-      </div>
-    `;
-  }
-
   return `
-    <div class="product-carousel" data-pid="${pid}">
-      ${imgs
-        .map(
-          (src, i) => `
-          <div class="carousel-slide ${i === 0 ? "active" : ""}">
-            <img
-              ${i === 0 ? `id="img-${pid}" src="${src}"` : `data-src="${src}"`}
-              loading="lazy"
-              decoding="async"
-              alt="${alt}"
-              onclick="openImgZoom(this.src, this.alt)"
-              onerror="
-                const slide = this.closest('.carousel-slide');
-                const carousel = this.closest('.product-carousel');
-                slide?.remove();
-                const remaining = carousel?.querySelectorAll('.carousel-slide');
-                if (!remaining?.length) { if (carousel) carousel.innerHTML = '&lt;div class=&quot;carousel-slide active&quot;&gt;&lt;img src=&quot;img/no-image.jpg&quot; alt=&quot;&quot;&gt;&lt;/div&gt;'; }
-                else if (remaining?.length === 1) { carousel?.querySelectorAll('.carousel-btn').forEach(b => b.style.display='none'); }
-              "
-            >
-          </div>
-        `,
-        )
-        .join("")}
-
-      <button type="button" class="carousel-btn prev" aria-label="Imagen anterior">&lsaquo;</button>
-      <button type="button" class="carousel-btn next" aria-label="Imagen siguiente">&rsaquo;</button>
+    <div class="product-carousel single" data-pid="${pid}">
+      <div class="carousel-slide active">
+        <img
+          id="img-${pid}"
+          src="${thumbUrl(full)}"
+          data-full="${full}"
+          loading="lazy"
+          decoding="async"
+          alt="${alt}"
+          onclick="openImgZoom(this.dataset.full || this.src, this.alt)"
+          onerror="if(this.src!==this.dataset.full){this.src=this.dataset.full;}else{this.onerror=null;this.src='img/no-image.jpg';}"
+        >
+      </div>
     </div>
   `;
 }
