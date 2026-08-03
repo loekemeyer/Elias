@@ -84,7 +84,7 @@ Es la divergencia más grande contra PaginaLK y conviene tenerla clara.
 
 | Página | Script | Rol |
 |---|---|---|
-| `index.html` | `script.index.js` + `css/styles.index.css` | Landing público: hero con video, Nosotros, Catálogo, feed de Instagram (widget Elfsight), Contacto, modales legales. No usa Supabase. |
+| `index.html` | `script.index.js` + `css/styles.index.css` | Landing público: hero con video, Nosotros, Catálogo, Contacto, modales legales. No usa Supabase. |
 | `mayorista.html` | `script.js` + `css/styles.css` | Catálogo B2B: login, navegación, carrito, envío de pedido, perfil. Un solo archivo con todas las "secciones" (`productos`, `carrito`, `perfil`, `pedidoConfirmado`, …); `showSection(id)` prende `.active` sobre los nodos `.section`. |
 | `historial.html` | `historial.js` + `css/historial.css` | Pedidos anteriores del cliente. |
 | `sugerencias.html` | `sugerencias.js` + `css/sugerencias.css` | Sugerencias y novedades por cliente (`sugerencias_cliente` / `novedades_marca`). |
@@ -129,6 +129,23 @@ Lo que tiene PaginaLK y acá **no corresponde** portar:
   (`menuFormatoOsa`, `osaFormatLink`) apuntan a una carpeta que no existe en este
   repo: son markup muerto, inalcanzable mientras el array siga vacío.
 - Todo el módulo de cruce con Chef, el Ranking Inactivos y Gerente de ventas.
+
+## Pendientes del landing
+
+- **La sección "Seguinos en Instagram" está COMENTADA entera** en `index.html`
+  (líneas ~106-129), con un TODO: el widget de Elfsight que trae adentro apunta a
+  la cuenta de **loekemeyer**, no a tierranativasa. Descomentarla así como está
+  mostraría el feed de la otra empresa, así que hasta tener el app id de Elfsight
+  de la cuenta propia conviene dejarla tapada. La alternativa —y es lo que hace
+  PaginaLK— es un feed propio: una Edge Function `ig-feed` contra la Graph API de
+  Instagram más un cron que refresque el token de larga duración. Eso necesita
+  cuenta de Instagram Business vinculada a una página de Facebook y el token; sin
+  eso no se puede armar.
+- **Falta la sección "Empresas que confían en nosotros"** que sí tiene PaginaLK:
+  un carrusel de logos de clientes que rebota (`#clientes` + `initClientesBounce()`
+  en `script.index.js`, más las reglas `.clientes-*` del CSS). No está portada
+  porque hacen falta los logos de los clientes de Tierra Nativa; hoy no hay
+  ninguno en `img/`.
 
 ## El acceso mayorista está detrás de una contraseña
 
