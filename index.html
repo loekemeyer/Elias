@@ -6,6 +6,29 @@
     <title>Tierra Nativa SA</title>
     <link rel="icon" type="image/png" href="./img/favicon.png" />
 
+    <!-- Datos estructurados para buscadores. Faltan `address` y `taxID`: no
+         están en ningún lado del repo, agregarlos cuando se tengan. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Tierra Nativa SA",
+        "legalName": "TIERRA NATIVA SA",
+        "alternateName": "Tierra Vintage",
+        "url": "https://tierravintage.com.ar/",
+        "logo": "https://tierravintage.com.ar/img/logo.png",
+        "foundingDate": "2007",
+        "description": "Fábrica argentina de cuadros, portarretratos, bandejas y productos de madera para el hogar.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "sales",
+          "email": "tierranativ@hotmail.com",
+          "telephone": "+54-9-11-3118-1185"
+        },
+        "sameAs": ["https://www.instagram.com/tierranativasa"]
+      }
+    </script>
+
     <link rel="stylesheet" href="./css/styles.index.css" />
   </head>
 
@@ -55,7 +78,10 @@
       <div class="container">
         <div class="about">
           <div class="img">
-            <img src="img/img_landing.png" alt="Cocina" />
+            <img
+              src="img/img_landing.png"
+              alt="Composición de cuadros enmarcados sobre una consola de madera"
+            />
           </div>
 
           <div class="about-text">
@@ -196,12 +222,11 @@
             <h3>Clientes</h3>
             <p>Quiero ser cliente mayorista.</p>
 
-            <!-- ⚠️ Reemplazá NUMERO_A_DEFINIR por el número final en formato 54911xxxxxxx -->
             <a
               class="contact-link"
               target="_blank"
               rel="noopener"
-              href="https://wa.me/541131181185?text=Quiero%20ser%20cliente"
+              href="https://wa.me/5491131181185?text=Quiero%20ser%20cliente"
             >
               WhatsApp Mayoristas
             </a>
@@ -370,8 +395,8 @@
       </svg>
     </a>
 
-    <script src="./version.js?v=274"></script>
-    <script src="script.index.js?v=274"></script>
+    <script src="./version.js?v=275"></script>
+    <script src="script.index.js?v=275"></script>
 
     <!-- ================= MODAL LEGAL ================= -->
     <div class="modal-backdrop" id="legalModal" aria-hidden="true">

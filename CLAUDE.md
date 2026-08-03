@@ -221,6 +221,16 @@ de texto (`2.7.0-miniaturas`) aborta el commit.
 
 ## Gotchas
 
+- **El WhatsApp de Tierra Nativa es `5491131181185`. El `1131181021` es el de
+  Loekemeyer.** Los dos empiezan igual (3118) y se confunden fácil. Hasta el
+  4/8/2026 `mayorista.html` tenía CINCO links al número de Loekemeyer, heredados
+  del port: un cliente de Tierra Nativa que pedía su contraseña le escribía a la
+  otra empresa. Al tocar un `wa.me`, verificar contra el teléfono que declara la
+  política de privacidad en `script.index.js`.
+- **Los `wa.me` de móviles argentinos llevan el `9`**: `54` + `9` + área + número.
+  Sin el 9 (`541131181185`) WhatsApp lo toma como fijo y el link no abre chat.
+  Había cuatro así. **PaginaLK todavía tiene links sin el 9** — si se porta algo
+  de allá, revisarlo.
 - **El idioma es español** en textos de UI, nombres de variables y comentarios.
   Seguir el estilo de lo que está alrededor.
 - `admin.js` usa `var` y JS de función-scope a la vieja; `script.js`,
