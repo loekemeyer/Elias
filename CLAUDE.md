@@ -130,22 +130,21 @@ Lo que tiene PaginaLK y acá **no corresponde** portar:
   repo: son markup muerto, inalcanzable mientras el array siga vacío.
 - Todo el módulo de cruce con Chef, el Ranking Inactivos y Gerente de ventas.
 
-## Pendientes del landing
+## Secciones del landing que PaginaLK tiene y acá se decidieron NO tener
 
-- **La sección "Seguinos en Instagram" está COMENTADA entera** en `index.html`
-  (líneas ~106-129), con un TODO: el widget de Elfsight que trae adentro apunta a
-  la cuenta de **loekemeyer**, no a tierranativasa. Descomentarla así como está
-  mostraría el feed de la otra empresa, así que hasta tener el app id de Elfsight
-  de la cuenta propia conviene dejarla tapada. La alternativa —y es lo que hace
-  PaginaLK— es un feed propio: una Edge Function `ig-feed` contra la Graph API de
-  Instagram más un cron que refresque el token de larga duración. Eso necesita
-  cuenta de Instagram Business vinculada a una página de Facebook y el token; sin
-  eso no se puede armar.
-- **Falta la sección "Empresas que confían en nosotros"** que sí tiene PaginaLK:
-  un carrusel de logos de clientes que rebota (`#clientes` + `initClientesBounce()`
-  en `script.index.js`, más las reglas `.clientes-*` del CSS). No está portada
-  porque hacen falta los logos de los clientes de Tierra Nativa; hoy no hay
-  ninguno en `img/`.
+Las dos estaban como código muerto heredado del port y se borraron a pedido del
+dueño. **No volver a portarlas por iniciativa propia.**
+
+- **Feed de Instagram.** Estaba comentado entero en `index.html`, con un widget de
+  Elfsight que apuntaba a la cuenta de **loekemeyer**, no a tierranativasa —
+  descomentarlo habría mostrado el feed de la otra empresa. Se borró junto con su
+  CSS (`.social-section`, `.ig-widget-wrap`, las reglas que escondían el branding
+  de Elfsight). **Sigue estando el botón flotante de Instagram** abajo a la
+  derecha (`a.ig`), que apunta a `instagram.com/tierranativasa` y sí es correcto.
+- **"Empresas que confían en nosotros."** El carrusel rebotando de logos de
+  clientes. El markup nunca se portó, pero habían quedado `initClientesBounce()`
+  en `script.index.js` y unas 70 líneas de `.clientes-*` en el CSS, apuntando a
+  un `#clientesBounce` que no existía. Todo eso se borró.
 
 ## El acceso mayorista está detrás de una contraseña
 
