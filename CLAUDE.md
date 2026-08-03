@@ -146,14 +146,19 @@ dueño. **No volver a portarlas por iniciativa propia.**
   en `script.index.js` y unas 70 líneas de `.clientes-*` en el CSS, apuntando a
   un `#clientesBounce` que no existía. Todo eso se borró.
 
-## El acceso mayorista está detrás de una contraseña
+## El acceso mayorista es abierto
 
-`index.html` monta un modal "Sitio en construcción" con la contraseña
-**escrita en el HTML** (`var PASS = "..."`). Es un cartel, no seguridad:
-cualquiera que abra el código fuente la ve, y el repo es público. Cuando el
-sitio se abra, se saca el modal y `btnMayorista` va derecho a `mayorista.html`.
-La protección real de los datos es el login de Supabase + RLS, que no depende de
-esto.
+`#btnMayorista` del hero es un `<a href="mayorista.html">` y navega solo. **No
+hay JS de por medio y no debe volver a haberlo.**
+
+Hubo un modal "Sitio en construcción" que le interceptaba el click y pedía una
+contraseña **escrita en el HTML** (`var PASS = "..."`). Nunca fue seguridad —
+cualquiera que abriera el código fuente la veía, y el repo es público— sino un
+cartel de "todavía no abrimos". Se retiró al abrir el sitio, junto con el CSS
+muerto de una pantalla "en desarrollo" anterior (`.dev-box`, `#enDesarrollo`).
+
+La protección real de los datos es el login de Supabase (CUIT + PIN) más RLS, y
+nunca dependió del modal.
 
 ## Operaciones comunes
 

@@ -293,36 +293,6 @@ img {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* ================= EN DESARROLLO ================= */
-
-.dev-box {
-  background: #fff;
-  border: 1px solid var(--border);
-  padding: 50px 60px;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-}
-#enDesarrollo {
-  display: none;
-  height: 60vh;
-  min-height: 420px;
-  max-height: 720px;
-  background: #f5f5f5;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.dev-box h2 {
-  font-size: 36px;
-  margin: 0 0 10px;
-}
-
-.dev-box p {
-  color: #666;
-  font-size: 16px;
-}
-
 /* ================= FLOAT BUTTONS ================= */
 
 .wa {
@@ -444,11 +414,6 @@ img {
 
 .nav-cta:hover {
   background: var(--accent-hover);
-}
-
-/* ================= EN DESARROLLO (NO USAR) ================= */
-#enDesarrollo {
-  display: none !important;
 }
 
 /* ================= CONTACTO TABS ================= */

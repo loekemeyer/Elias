@@ -1,14 +1,7 @@
-// El acceso a mayorista se controla con el modal "en construcción" + contraseña
-// definido en index.html. Se desactiva la redirección directa de acá.
-// document.addEventListener("DOMContentLoaded", () => {
-//   const btn = document.getElementById("btnMayorista");
-//   if (!btn) return;
-//
-//   // Ir directo a la tienda (sin pantalla "en desarrollo")
-//   btn.addEventListener("click", () => {
-//     window.location.href = "mayorista.html";
-//   });
-// });
+// #btnMayorista es un <a href="mayorista.html"> y navega solo: no hace falta
+// JS. Hubo un modal "Sitio en construcción" con contraseña que le interceptaba
+// el click; se retiró al abrir el sitio. La protección real es el login de
+// Supabase (CUIT + PIN) + RLS.
 
 function initLegalModals() {
   const modal = document.getElementById("legalModal");

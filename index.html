@@ -370,8 +370,8 @@
       </svg>
     </a>
 
-    <script src="./version.js?v=273"></script>
-    <script src="script.index.js?v=273"></script>
+    <script src="./version.js?v=274"></script>
+    <script src="script.index.js?v=274"></script>
 
     <!-- ================= MODAL LEGAL ================= -->
     <div class="modal-backdrop" id="legalModal" aria-hidden="true">
@@ -387,70 +387,5 @@
       </div>
     </div>
 
-    <!-- ================= MODAL ACCESO MAYORISTA (en construcción) ================= -->
-    <div id="mayoristaModal" aria-hidden="true" style="position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.65);padding:20px;">
-      <div role="dialog" aria-modal="true" aria-labelledby="mayoristaTitle" style="position:relative;background:#fff;color:#222;max-width:420px;width:100%;border-radius:14px;padding:32px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:inherit;">
-        <button type="button" id="mayoristaClose" aria-label="Cerrar" style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#999;padding:4px;">✕</button>
-        <div style="font-size:46px;line-height:1;margin-bottom:8px;">🚧</div>
-        <h3 id="mayoristaTitle" style="margin:0 0 8px;font-size:22px;">Sitio en construcción</h3>
-        <p style="margin:0 0 20px;color:#666;font-size:15px;">La sección mayorista está en construcción. Ingresá la contraseña para acceder.</p>
-        <form id="mayoristaForm">
-          <input
-            type="password"
-            id="mayoristaPass"
-            placeholder="Contraseña"
-            autocomplete="off"
-            style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:15px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;"
-          />
-          <p id="mayoristaError" style="display:none;color:#c0392b;font-size:13px;margin:0 0 10px;">Contraseña incorrecta.</p>
-          <button type="submit" style="width:100%;padding:12px 14px;font-size:15px;font-weight:600;border:none;border-radius:8px;background:#1d1d1d;color:#fff;cursor:pointer;">Ingresar</button>
-        </form>
-      </div>
-    </div>
-
-    <script>
-      (function () {
-        var PASS = "Damian.10";
-        var btn = document.getElementById("btnMayorista");
-        var modal = document.getElementById("mayoristaModal");
-        var form = document.getElementById("mayoristaForm");
-        var pass = document.getElementById("mayoristaPass");
-        var error = document.getElementById("mayoristaError");
-        var closeBtn = document.getElementById("mayoristaClose");
-        if (!btn || !modal) return;
-
-        function openModal(e) {
-          if (e) e.preventDefault();
-          modal.style.display = "flex";
-          modal.setAttribute("aria-hidden", "false");
-          error.style.display = "none";
-          pass.value = "";
-          setTimeout(function () { pass.focus(); }, 50);
-        }
-        function closeModal() {
-          modal.style.display = "none";
-          modal.setAttribute("aria-hidden", "true");
-        }
-
-        btn.addEventListener("click", openModal);
-        closeBtn.addEventListener("click", closeModal);
-        modal.addEventListener("click", function (e) {
-          if (e.target === modal) closeModal();
-        });
-        document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && modal.style.display === "flex") closeModal();
-        });
-        form.addEventListener("submit", function (e) {
-          e.preventDefault();
-          if (pass.value === PASS) {
-            window.location.href = btn.getAttribute("href");
-          } else {
-            error.style.display = "block";
-            pass.value = "";
-            pass.focus();
-          }
-        });
-      })();
-    </script>
   </body>
 </html>
