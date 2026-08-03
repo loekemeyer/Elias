@@ -1,8 +1,11 @@
-// Loekemeyer — versión del sitio.
-// Para actualizar en todos los footers, cambiar SOLO la línea de abajo
-// y bumpear el `?v=` del <script src="./version.js?v=N"> en las HTML
-// para invalidar el cache del navegador.
-const APP_VERSION = "2.7.0-miniaturas";
+// Tierra Nativa — versión del sitio.
+// NO editar a mano: la bumpea `hooks/pre-commit` en cada commit, que además
+// sincroniza los `?v=` de todos los .js y .css de las HTML para invalidar el
+// cache del navegador. Activar una vez por clon con:
+//     git config core.hooksPath hooks
+// El formato tiene que ser MAJOR.MINOR.PATCH numérico: el hook le suma 1 al
+// patch con aritmética de shell, así que un sufijo de texto lo rompe.
+const APP_VERSION = "2.7.1";
 // Expuesto para reusar la MISMA versión en subpáginas (p. ej. el Formato OSA),
 // así con cambiar solo esta línea se actualiza todo.
 window.APP_VERSION = APP_VERSION;

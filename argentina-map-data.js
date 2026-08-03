@@ -14,8 +14,22 @@
 
 // Fuentes del GeoJSON (probadas en orden — primera que funcione gana).
 // Si todas fallan, cae al fallback simplificado embebido abajo.
+// El archivo local es el que manda y ahora SÍ existe: antes estaba referenciado
+// como `.geojson` pero nunca se había commiteado, así que daba 404 y quedaban
+// solo los dos CDN. Cuando esos tampoco responden —red de oficina, GitHub
+// bloqueado— el mapa caía siempre al fallback simplificado, que son rectángulos
+// y no un mapa de Argentina.
+//
+// Extensión .json y NO .geojson a propósito: IIS devuelve 404 para extensiones
+// que no tenga declaradas en staticContent (ver web.config).
+//
+// Origen del dato: Natural Earth ADM1 (dominio público), vía el paquete npm
+// @geo-insight/data (MIT). Recortado a la propiedad `name` y con coordenadas a
+// 4 decimales (~11 m). 24 provincias, bbox lon -73,57..-53,66 / lat
+// -55,05..-21,79 — o sea Argentina continental, sin el reclamo antártico, que
+// estiraría el encuadre hasta el polo y dejaría el país como una raya.
 var ARGENTINA_GEOJSON_URLS = [
-  "argentina-provinces.geojson", // local (preferido — sin CORS, rapidísimo)
+  "argentina-provinces.json", // local (preferido — sin CORS, rapidísimo)
   "https://raw.githubusercontent.com/codeforgermany/click_that_hood/master/public/data/argentina-provinces.geojson",
   "https://cdn.jsdelivr.net/gh/codeforgermany/click_that_hood@master/public/data/argentina-provinces.geojson"
 ];
