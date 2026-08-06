@@ -1247,7 +1247,39 @@ async function refreshAuthState(sessionOverride) {
     .eq("auth_user_id", currentSession.user.id)
     .maybeSingle();
 
-  customerProfile = custRow || null;
+  // Si no se encontró por auth_user_id, puede ser que el link falte en la tabla
+  // customers (auth_user_id NULL). Llamamos a la Edge Function auto-link-auth
+  // que busca por CUIT con service role (saltea RLS), linkea el auth_user_id,
+  // y devuelve la fila. En logins posteriores el .eq("auth_user_id") ya funciona.
+  let resolvedCust = custRow || null;
+  if (!resolvedCust) {
+    try {
+      const token = currentSession.access_token;
+      if (token) {
+        const resp = await fetch(
+          `${SUPABASE_URL}/functions/v1/auto-link-auth`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              apikey: SUPABASE_ANON_KEY,
+              "Content-Type": "application/json",
+            },
+            body: "{}",
+          },
+        );
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json.customer) resolvedCust = json.customer;
+        }
+      }
+    } catch (_e) {
+      // Silenciar: si la Edge Function no está desplegada o falla, seguimos
+      // con customerProfile = null como antes.
+    }
+  }
+
+  customerProfile = resolvedCust;
   // Snapshot del perfil propio del vendedor para poder volver desde "Pedir para"
   _vendorOwnProfile = customerProfile ? Object.assign({}, customerProfile) : null;
 
