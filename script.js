@@ -1255,9 +1255,9 @@ async function refreshAuthState(sessionOverride) {
   if ($("userBox")) $("userBox").style.display = "inline-flex";
   if ($("ctaCliente")) $("ctaCliente").style.display = "none";
 
-  const name = (customerProfile?.business_name || "").trim();
+  const razonSocial = (customerProfile?.business_name || "").trim();
   if ($("helloNavText"))
-    $("helloNavText").innerText = name ? `Hola, ${name} !` : "Hola!";
+    $("helloNavText").innerText = razonSocial ? `Hola, ${razonSocial} !` : "Hola!";
 
   if ($("menuMyOrders")) $("menuMyOrders").style.display = "block";
 
@@ -2257,17 +2257,32 @@ async function loadMyAddressesUI() {
   const box = $("myAddressesBox");
   if (!box) return;
 
-  if (!currentSession || !customerProfile?.id) {
+  if (!currentSession || !customerProfile?.cod_cliente) {
     box.innerHTML = "Iniciá sesión para ver tus sucursales.";
     return;
   }
 
   box.innerHTML = "Cargando…";
 
+  // Si customerProfile.id no está disponible, obtenerlo
+  let customerId = customerProfile.id;
+  if (!customerId) {
+    const { data: custData } = await supabaseClient
+      .from("customers")
+      .select("id")
+      .eq("auth_user_id", currentSession.user.id)
+      .maybeSingle();
+    customerId = custData?.id;
+    if (!customerId) {
+      box.innerHTML = "No se pudieron cargar las sucursales.";
+      return;
+    }
+  }
+
   const { data, error } = await supabaseClient
     .from("customer_delivery_addresses")
     .select("slot,label,direccion_entrega,zona_expreso,pending_isis")
-    .eq("customer_id", customerProfile.id)
+    .eq("customer_id", customerId)
     .order("slot", { ascending: true });
 
   if (error) {
@@ -4844,17 +4859,31 @@ async function loadDeliveryOptions(retry = 0) {
   resetShippingSelect();
 
   // esperar un poco si la sesión/perfil todavía no terminó de restaurarse
-  if (!currentSession || !customerProfile?.id) {
+  if (!currentSession || !customerProfile?.cod_cliente) {
     if (retry < 5) {
       setTimeout(() => loadDeliveryOptions(retry + 1), 400);
     }
     return;
   }
 
+  // Si customerProfile.id no está disponible, obtenerlo
+  let customerId = customerProfile.id;
+  if (!customerId) {
+    const { data: custData } = await supabaseClient
+      .from("customers")
+      .select("id")
+      .eq("auth_user_id", currentSession.user.id)
+      .maybeSingle();
+    customerId = custData?.id;
+    if (!customerId) {
+      return;
+    }
+  }
+
   const { data, error } = await supabaseClient
     .from("customer_delivery_addresses")
     .select("slot,label,direccion_entrega,zona_expreso,pending_isis")
-    .eq("customer_id", customerProfile.id)
+    .eq("customer_id", customerId)
     .order("slot", { ascending: true });
 
   if (error) {
@@ -6426,6 +6455,32 @@ function updateCart() {
     deliveryChoice.label = opt?.dataset?.label || opt?.textContent || "";
     deliveryChoice.direccionEntrega = opt?.dataset?.direccionEntrega || "";
     deliveryChoice.zonaExpreso = opt?.dataset?.zonaExpreso || "";
+  }
+
+  // Mostrar/actualizar info de sucursal seleccionada
+  const sucursalSelectedInfo = $("sucursalSelectedInfo");
+  if (sucursalSelectedInfo) {
+    if (deliveryChoice?.slot) {
+      sucursalSelectedInfo.style.display = "block";
+      const sucursalSlot = $("sucursalSlot");
+      const sucursalLabel = $("sucursalLabel");
+      const sucursalDir = $("sucursalDir");
+      const sucursalZona = $("sucursalZona");
+      const sucursalLabelRow = $("sucursalLabelRow");
+      const sucursalDirRow = $("sucursalDirRow");
+      const sucursalZonaRow = $("sucursalZonaRow");
+
+      if (sucursalSlot) sucursalSlot.textContent = deliveryChoice.slot || "—";
+      if (sucursalLabel) sucursalLabel.textContent = deliveryChoice.label || "—";
+      if (sucursalDir) sucursalDir.textContent = deliveryChoice.direccionEntrega || "—";
+      if (sucursalZona) sucursalZona.textContent = deliveryChoice.zonaExpreso || "—";
+
+      if (sucursalLabelRow) sucursalLabelRow.style.display = deliveryChoice.label ? "block" : "none";
+      if (sucursalDirRow) sucursalDirRow.style.display = deliveryChoice.direccionEntrega ? "block" : "none";
+      if (sucursalZonaRow) sucursalZonaRow.style.display = deliveryChoice.zonaExpreso ? "block" : "none";
+    } else {
+      sucursalSelectedInfo.style.display = "none";
+    }
   }
 
   const hasShipping =
