@@ -6457,32 +6457,6 @@ function updateCart() {
     deliveryChoice.zonaExpreso = opt?.dataset?.zonaExpreso || "";
   }
 
-  // Mostrar/actualizar info de sucursal seleccionada
-  const sucursalSelectedInfo = $("sucursalSelectedInfo");
-  if (sucursalSelectedInfo) {
-    if (deliveryChoice?.slot) {
-      sucursalSelectedInfo.style.display = "block";
-      const sucursalSlot = $("sucursalSlot");
-      const sucursalLabel = $("sucursalLabel");
-      const sucursalDir = $("sucursalDir");
-      const sucursalZona = $("sucursalZona");
-      const sucursalLabelRow = $("sucursalLabelRow");
-      const sucursalDirRow = $("sucursalDirRow");
-      const sucursalZonaRow = $("sucursalZonaRow");
-
-      if (sucursalSlot) sucursalSlot.textContent = deliveryChoice.slot || "—";
-      if (sucursalLabel) sucursalLabel.textContent = deliveryChoice.label || "—";
-      if (sucursalDir) sucursalDir.textContent = deliveryChoice.direccionEntrega || "—";
-      if (sucursalZona) sucursalZona.textContent = deliveryChoice.zonaExpreso || "—";
-
-      if (sucursalLabelRow) sucursalLabelRow.style.display = deliveryChoice.label ? "block" : "none";
-      if (sucursalDirRow) sucursalDirRow.style.display = deliveryChoice.direccionEntrega ? "block" : "none";
-      if (sucursalZonaRow) sucursalZonaRow.style.display = deliveryChoice.zonaExpreso ? "block" : "none";
-    } else {
-      sucursalSelectedInfo.style.display = "none";
-    }
-  }
-
   const hasShipping =
     !!deliveryChoice?.slot || !!String(shippingSelectEl?.value || "").trim();
   const hasPayment = isAdmin
