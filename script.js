@@ -8159,7 +8159,7 @@ async function descargarPedidoPDF(soloSubir = false) {
   // =========================================================
   // HEADER: banner con logo (ya trae fondo + logo)
   // =========================================================
-  const headerBanner = await loadImageAsDataURL("img/HeaderLK.png");
+  const headerBanner = await loadImageAsDataURL("img/HeaderTN.png");
   doc.addImage(headerBanner, "PNG", 0, 0, 210, 24);
 
   // =========================================================
