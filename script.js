@@ -1239,7 +1239,11 @@ async function refreshAuthState(sessionOverride) {
   }
   syncAdminCheckoutUI();
 
-  const { data: custRow, error: custErr } = await supabaseClient
+  let custRow = null;
+  let custErr = null;
+
+  // Intento 1: buscar por auth_user_id
+  const result1 = await supabaseClient
     .from("customers")
     .select(
       "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,debt,payment_term,credit_limit",
@@ -1247,12 +1251,36 @@ async function refreshAuthState(sessionOverride) {
     .eq("auth_user_id", currentSession.user.id)
     .maybeSingle();
 
+  custRow = result1.data;
+  custErr = result1.error;
+
   if (custErr) {
-    console.error("Error cargando customer:", custErr);
-  } else if (custRow) {
-    console.log("Customer cargado:", custRow.cod_cliente, custRow.business_name);
+    console.error("Error en query por auth_user_id:", custErr);
+  }
+
+  // Intento 2 (fallback): buscar por email si el primer intento no retornó nada
+  if (!custRow && currentSession.user.email) {
+    console.warn("No se encontró customer por auth_user_id, intentando por email:", currentSession.user.email);
+    const result2 = await supabaseClient
+      .from("customers")
+      .select(
+        "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,debt,payment_term,credit_limit",
+      )
+      .eq("mail", currentSession.user.email)
+      .maybeSingle();
+
+    custRow = result2.data;
+    if (result2.error) {
+      console.error("Error en query por email:", result2.error);
+    } else if (custRow) {
+      console.log("Customer encontrado por email fallback:", custRow.cod_cliente, custRow.business_name);
+    }
+  }
+
+  if (custRow) {
+    console.log("Customer cargado:", custRow.cod_cliente, "razón social:", custRow.business_name);
   } else {
-    console.warn("No se encontró customer para auth_user_id:", currentSession.user.id);
+    console.warn("No se encontró customer para user:", currentSession.user.id);
   }
 
   customerProfile = custRow || null;
