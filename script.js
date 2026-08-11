@@ -298,7 +298,7 @@ function legacyCodForOrder(productId, currentCod, orderCreatedAt) {
  * Las categorias/subcategorias que no figuren se muestran igual, despues
  * de las listadas y en orden alfabetico.
  ***********************/
-const CATEGORY_ORDER = ["Cuadros", "Portaretratos", "Deco", "Importados"];
+const CATEGORY_ORDER = ["Cuadros", "Portaretratos", "Deco"];
 
 // Categoria que se subdivide en subcategorias. En PaginaLK era "Utensilios";
 // aca es "Cuadros" (142 productos activos, 43 subcategorias en uso).
