@@ -1246,7 +1246,7 @@ async function refreshAuthState(sessionOverride) {
   const result1 = await supabaseClient
     .from("customers")
     .select(
-      "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,debt,payment_term,credit_limit",
+      "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail",
     )
     .eq("auth_user_id", currentSession.user.id)
     .maybeSingle();
@@ -1264,7 +1264,7 @@ async function refreshAuthState(sessionOverride) {
     const result2 = await supabaseClient
       .from("customers")
       .select(
-        "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,debt,payment_term,credit_limit",
+        "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail",
       )
       .eq("mail", currentSession.user.email)
       .maybeSingle();
