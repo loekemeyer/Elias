@@ -1278,9 +1278,18 @@ async function refreshAuthState(sessionOverride) {
   }
 
   if (custRow) {
-    console.log("Customer cargado:", custRow.cod_cliente, "razón social:", custRow.business_name);
+    console.log("✅ Customer cargado:", {
+      id: custRow.id,
+      cod_cliente: custRow.cod_cliente,
+      business_name: custRow.business_name,
+      mail: custRow.mail,
+      cuit: custRow.cuit,
+    });
   } else {
-    console.warn("No se encontró customer para user:", currentSession.user.id);
+    console.warn("❌ No se encontró customer para user:", {
+      user_id: currentSession.user.id,
+      user_email: currentSession.user.email,
+    });
   }
 
   customerProfile = custRow || null;
