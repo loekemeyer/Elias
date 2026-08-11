@@ -1239,13 +1239,21 @@ async function refreshAuthState(sessionOverride) {
   }
   syncAdminCheckoutUI();
 
-  const { data: custRow } = await supabaseClient
+  const { data: custRow, error: custErr } = await supabaseClient
     .from("customers")
     .select(
       "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,debt,payment_term,credit_limit",
     )
     .eq("auth_user_id", currentSession.user.id)
     .maybeSingle();
+
+  if (custErr) {
+    console.error("Error cargando customer:", custErr);
+  } else if (custRow) {
+    console.log("Customer cargado:", custRow.cod_cliente, custRow.business_name);
+  } else {
+    console.warn("No se encontró customer para auth_user_id:", currentSession.user.id);
+  }
 
   customerProfile = custRow || null;
   // Snapshot del perfil propio del vendedor para poder volver desde "Pedir para"
