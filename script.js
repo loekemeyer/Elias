@@ -1255,7 +1255,10 @@ async function refreshAuthState(sessionOverride) {
   if ($("userBox")) $("userBox").style.display = "inline-flex";
   if ($("ctaCliente")) $("ctaCliente").style.display = "none";
 
-  const razonSocial = (customerProfile?.business_name || "").trim();
+  let razonSocial = (customerProfile?.business_name || "").trim();
+  if (!razonSocial && customerProfile?.cod_cliente) {
+    razonSocial = `Cliente ${customerProfile.cod_cliente}`;
+  }
   if ($("helloNavText"))
     $("helloNavText").innerText = razonSocial ? `Hola, ${razonSocial} !` : "Hola!";
 
