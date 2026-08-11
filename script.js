@@ -1602,6 +1602,7 @@ async function loadProductsFromDB() {
         : Number(p.orden_catalogo),
     description: p.description,
     list_price: p.list_price,
+    list2_price: p.list2_price,
     uxb: p.uxb,
     images: p.images ?? [], // string JSON (RPC) o array (SELECT): getProductImages() parsea ambos
     // ✅ Nuevo parámetro
