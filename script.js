@@ -501,6 +501,7 @@ let products = []; // productos cargados
 let currentSession = null; // sesión supabase
 let isAdmin = false; // admin flag
 let customerProfile = null; // {id, business_name, dto_vol, ...}
+let customerList = null; // 1 (Tierra Nativa) | 2 (Pablo/lista2)
 let _vendorOwnProfile = null; // snapshot del perfil del vendedor logueado (para volver desde "Pedir para")
 function isListPriceOnlyClient() {
   return isAdmin || String(customerProfile?.cod_cliente) === "5000";
@@ -529,6 +530,17 @@ function getFormatoCliente() {
   return FORMATO_CLIENTES.find((f) => f.cod === cod || f.cuit === cuit) || null;
 }
 function isFormatoCliente() { return !!getFormatoCliente(); }
+
+// Retorna el precio correcto según la lista del cliente logueado
+function getPriceForCustomer(product) {
+  if (!product) return 0;
+  // Si lista = 2 (Pablo), usar list2_price si existe
+  if (customerList === 2 && product.list2_price) {
+    return product.list2_price;
+  }
+  // Default: list_price (Tierra Nativa o fallback)
+  return product.list_price || 0;
+}
 
 const cart = []; // [{ productId: uuidString, qtyCajas }]
 
@@ -1246,7 +1258,7 @@ async function refreshAuthState(sessionOverride) {
   const result1 = await supabaseClient
     .from("customers")
     .select(
-      "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail",
+      "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,lista",
     )
     .eq("auth_user_id", currentSession.user.id)
     .maybeSingle();
@@ -1264,7 +1276,7 @@ async function refreshAuthState(sessionOverride) {
     const result2 = await supabaseClient
       .from("customers")
       .select(
-        "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail",
+        "id,business_name,dto_vol,cod_cliente,cuit,direccion_fiscal,localidad,vend,mail,lista",
       )
       .eq("mail", currentSession.user.email)
       .maybeSingle();
@@ -1293,6 +1305,7 @@ async function refreshAuthState(sessionOverride) {
   }
 
   customerProfile = custRow || null;
+  customerList = custRow?.lista || 1; // 1 = Tierra Nativa, 2 = Pablo/Lista2
   // Snapshot del perfil propio del vendedor para poder volver desde "Pedir para"
   _vendorOwnProfile = customerProfile ? Object.assign({}, customerProfile) : null;
 
@@ -1540,7 +1553,7 @@ async function loadProductsFromDB() {
   let q = supabaseClient
     .from("products")
     .select(
-      "id,cod,category,subcategory,ranking,orden_catalogo,description,list_price,uxb,images,badge_status,active",
+      "id,cod,category,subcategory,ranking,orden_catalogo,description,list_price,list2_price,uxb,images,badge_status,active",
     )
     .eq("active", true);
 
@@ -1654,13 +1667,13 @@ function getSortComparator() {
         : Number(b.ranking);
 
     const aPrice =
-      a.list_price === null || a.list_price === undefined
+      getPriceForCustomer(a) === null || getPriceForCustomer(a) === undefined
         ? -1
-        : Number(a.list_price);
+        : Number(getPriceForCustomer(a));
     const bPrice =
-      b.list_price === null || b.list_price === undefined
+      getPriceForCustomer(b) === null || getPriceForCustomer(b) === undefined
         ? -1
-        : Number(b.list_price);
+        : Number(getPriceForCustomer(b));
 
     if (sortMode === "bestsellers") {
       return (
@@ -3864,7 +3877,7 @@ function renderProducts() {
     // la raiz del bucket, que en Tierra Nativa no existe.
 
     // ✅ Tu precio normal (se sigue usando para carrito / subtotal, no se muestra en card)
-    const tuPrecio = logged ? unitYourPrice(p.list_price) : 0;
+    const tuPrecio = logged ? unitYourPrice(getPriceForCustomer(p)) : 0;
     const dtoVol = Number(customerProfile?.dto_vol || 0);
     // Vendor en modo browse (sin cliente seleccionado o "Perfil Vendedor")
     // → solo Precio Lista, sin Tu Precio Contado.
@@ -3873,7 +3886,7 @@ function renderProducts() {
 
     const tuPrecioContado = logged
       ? showListPriceOnly
-        ? Number(p.list_price || 0)
+        ? Number(getPriceForCustomer(p) || 0)
         : tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.25)
       : 0;
 
@@ -3929,7 +3942,7 @@ function renderProducts() {
 
           <div class="${logged ? "" : "price-hidden"} card-prices">
   <div class="card-price-line">
-    Precio Lista: <strong>$${formatMoney(p.list_price)}</strong><span class="card-iva">+ IVA</span>
+    Precio Lista: <strong>$${formatMoney(getPriceForCustomer(p))}</strong><span class="card-iva">+ IVA</span>
   </div>
 
   ${
@@ -3981,7 +3994,7 @@ function renderProducts() {
               <strong class="cartbar-subv">
                 $${formatMoney(
                   logged
-                    ? unitYourPrice(p.list_price) * (qty * Number(p.uxb || 0))
+                    ? unitYourPrice(getPriceForCustomer(p)) * (qty * Number(p.uxb || 0))
                     : 0,
                 )}
               </strong>
@@ -4465,10 +4478,10 @@ function _ncBuildPriceBlock(p, logged, showListPriceOnly) {
   if (showListPriceOnly) {
     return `
       <div class="nc-price-label">Precio Lista</div>
-      <div class="nc-price-big">$${formatMoney(p.list_price)} <span class="nc-iva">+ IVA</span></div>
+      <div class="nc-price-big">$${formatMoney(getPriceForCustomer(p))} <span class="nc-iva">+ IVA</span></div>
     `;
   }
-  const tuPrecio = unitYourPrice(p.list_price);
+  const tuPrecio = unitYourPrice(getPriceForCustomer(p));
   const tuPrecioContado = tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.25);
   return `
     <div class="nc-price-label">Tu precio contado</div>
@@ -6455,8 +6468,8 @@ function calcTotals() {
       const totalUni = item.qtyCajas * Number(p.uxb || 0);
       const loke = isLokeItem(item.productId);
       subtotal += loke
-        ? Number(p.list_price || 0) * totalUni
-        : unitYourPrice(p.list_price) * totalUni;
+        ? Number(getPriceForCustomer(p) || 0) * totalUni
+        : unitYourPrice(getPriceForCustomer(p)) * totalUni;
     });
   }
 
@@ -6466,7 +6479,7 @@ function calcTotals() {
     if (!p) return;
 
     const totalUni = item.qtyCajas * Number(p.uxb || 0);
-    totalNoDiscount += Number(p.list_price || 0) * totalUni;
+    totalNoDiscount += Number(getPriceForCustomer(p) || 0) * totalUni;
   });
 
   const webDiscountValue = subtotal * webDiscountRate;
@@ -6569,8 +6582,8 @@ function updateCart() {
 
       const tuPrecioUnit = t.logged
         ? loke
-          ? Number(p.list_price || 0)
-          : unitYourPrice(p.list_price)
+          ? Number(getPriceForCustomer(p) || 0)
+          : unitYourPrice(getPriceForCustomer(p))
         : 0;
       const lineTotal = t.logged ? tuPrecioUnit * totalUni : 0;
 
@@ -7100,8 +7113,8 @@ function renderMissingAssortmentModule() {
       var codSafe = String(p.cod || "").trim();
       var imgSrc = primaryProductImage(p);
       var tuPrecio = showTuPrecio
-        ? unitYourPrice(p.list_price)
-        : Number(p.list_price || 0);
+        ? unitYourPrice(getPriceForCustomer(p))
+        : Number(getPriceForCustomer(p) || 0);
       var qty = cartQtyById.get(pid) || 0;
 
       return (
@@ -7251,8 +7264,8 @@ function showUpsellPopup(upsellProducts) {
         var pid = String(p.id);
         var codSafe = String(p.cod || "").trim();
         var imgSrc = primaryProductImage(p);
-        var contado = calcContadoPrice(p.list_price);
-        var oferta = calcUpsellPrice(p.list_price);
+        var contado = calcContadoPrice(getPriceForCustomer(p));
+        var oferta = calcUpsellPrice(getPriceForCustomer(p));
         var uxb = Number(p.uxb || 0);
 
         return (
@@ -7275,7 +7288,7 @@ function showUpsellPopup(upsellProducts) {
           uxb +
           "</div>" +
           '<div class="upsell-price-list">Precio de lista: $' +
-          formatMoney(p.list_price) +
+          formatMoney(getPriceForCustomer(p)) +
           " + IVA</div>" +
           (logged
             ? '<div class="upsell-price-old">Contado: $' +
@@ -7466,9 +7479,9 @@ async function _submitSingleOrder(
         uxb: uxb,
         unidades: qtyCajas * uxb,
         unit_price: loke
-          ? Number(p.list_price || 0)
-          : Number(unitYourPrice(p.list_price) || 0),
-        list_price: Number(p.list_price || 0),
+          ? Number(getPriceForCustomer(p) || 0)
+          : Number(unitYourPrice(getPriceForCustomer(p)) || 0),
+        list_price: Number(getPriceForCustomer(p) || 0),
         description: String(p.description || ""),
         is_loke: loke,
         source: item.source || "catalogo",
@@ -8651,7 +8664,7 @@ async function descargarComprobantePedido(orderId) {
     const orderItems = (itemsRows || []).map((it) => {
       const prod = productsMap.get(String(it.product_id)) || {};
       const unidades = Number(it.cajas || 0) * Number(it.uxb || 0);
-      const listUnit = Number(prod.list_price || 0);
+      const listUnit = Number(getPriceForCustomer(prod) || 0);
 
       const tuPrecioUnit = isAdmin
         ? listUnit
@@ -10309,11 +10322,11 @@ function renderLokeProducts() {
   filtered = filtered.slice();
   if (lokeSortMode === "price_desc") {
     filtered.sort(function (a, b) {
-      return Number(b.list_price || 0) - Number(a.list_price || 0);
+      return Number(getPriceForCustomer(b) || 0) - Number(getPriceForCustomer(a) || 0);
     });
   } else if (lokeSortMode === "price_asc") {
     filtered.sort(function (a, b) {
-      return Number(a.list_price || 0) - Number(b.list_price || 0);
+      return Number(getPriceForCustomer(a) || 0) - Number(getPriceForCustomer(b) || 0);
     });
   }
 
@@ -10338,7 +10351,7 @@ function renderLokeProducts() {
 
     var pid = String(p.id);
     var codSafe = String(p.cod || "").trim();
-    var price = Number(p.list_price || 0);
+    var price = Number(getPriceForCustomer(p) || 0);
     var inCart = cart.find(function (i) {
       return String(i.productId) === pid;
     });
