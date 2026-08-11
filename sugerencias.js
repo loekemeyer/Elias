@@ -87,19 +87,40 @@ async function getSession() {
 }
 
 async function getCliente(session) {
-  const { data, error } = await sb
+  let data = null;
+  let error = null;
+
+  // Intento 1: buscar por auth_user_id
+  const result1 = await sb
     .from("customers")
     .select("cod_cliente, business_name, dto_vol")
     .eq("auth_user_id", session.user.id)
     .maybeSingle();
 
+  data = result1.data;
+  error = result1.error;
+
   if (error) {
-    console.error("getCliente error:", error);
-    setStatus("No se pudo cargar el cliente (RLS o datos).");
-    return null;
+    console.error("getCliente error (auth_user_id):", error);
   }
+
+  // Intento 2 (fallback): buscar por email si el primer intento no retornó nada
+  if (!data && session.user.email) {
+    console.warn("No se encontró por auth_user_id, intentando por email:", session.user.email);
+    const result2 = await sb
+      .from("customers")
+      .select("cod_cliente, business_name, dto_vol")
+      .eq("mail", session.user.email)
+      .maybeSingle();
+
+    data = result2.data;
+    if (result2.error) {
+      console.error("getCliente error (email):", result2.error);
+    }
+  }
+
   if (!data) {
-    setStatus("No se encontró tu cliente asociado. (customers.auth_user_id)");
+    setStatus("No se encontró tu cliente asociado.");
     return null;
   }
   return data;
