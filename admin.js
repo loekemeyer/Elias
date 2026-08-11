@@ -1197,6 +1197,9 @@ function renderClientes(clientes, addresses) {
         (c.business_name || "-") +
         '</div><div class="cc-cuit">CUIT: ' +
         (c.cuit || "-") +
+        ' <button class="copy-btn" onclick="copiarCUIT(\'' +
+        (c.cuit || "") +
+        '\', event)" title="Copiar CUIT" style="margin-left:8px;padding:2px 6px;font-size:11px;background:#ddd;border:none;border-radius:3px;cursor:pointer">📋</button>' +
         "</div></div>" +
         '<div class="cc-meta"><span class="cc-badge">' +
         addrs.length +
@@ -8531,4 +8534,27 @@ async function cargarRegistroEnvios() {
     if (statusEl) statusEl.innerHTML = '<span style="color:#c0392b">Error</span>';
   }
 }
+
+// Copiar CUIT al portapapeles
+function copiarCUIT(cuit, event) {
+  if (event) event.stopPropagation();
+  if (!cuit) {
+    alert("CUIT no disponible");
+    return;
+  }
+  navigator.clipboard.writeText(cuit).then(function () {
+    var btn = event?.target;
+    if (btn) {
+      var txt = btn.textContent;
+      btn.textContent = "✓";
+      setTimeout(function () {
+        btn.textContent = txt;
+      }, 1500);
+    }
+  }).catch(function (err) {
+    alert("Error al copiar: " + err.message);
+  });
+}
+window.copiarCUIT = copiarCUIT;
+
 window.cargarRegistroEnvios = cargarRegistroEnvios;
