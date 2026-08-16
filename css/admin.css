@@ -3215,3 +3215,34 @@ input[type="number"].manual-cell {
 .mfa-link-btn:hover {
   color: var(--text);
 }
+
+/* ==================== EXPO (portado de PaginaLK) ==================== */
+.expo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.expo-stat {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-sm, 10px);
+  padding: 14px 16px;
+  text-align: center;
+}
+.expo-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text, #111827);
+}
+.expo-stat-num.expo-stat-wait {
+  color: #b45309;
+}
+.expo-stat-num.expo-stat-ok {
+  color: #166534;
+}
+.expo-stat-lbl {
+  font-size: 12px;
+
+/* ==================== FIN EXPO ==================== */

@@ -188,9 +188,9 @@ function renderSug() {
     // tuPrecio = list_price * (1 - dto_vol)
     const tuPrecio = listPrice * (1 - dtoVol);
 
-    // tuPrecioContado = tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.25)
+    // tuPrecioContado = tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.30)
     const tuPrecioContado = Math.round(
-      tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.25),
+      tuPrecio * (1 - WEB_ORDER_DISCOUNT) * (1 - 0.3),
     );
     const msg = pick(r, ["texto_clientes", "mensaje", "texto"], "");
     const pid = String(pick(r, ["product_id", "id", "productId"], "")).trim();
