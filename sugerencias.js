@@ -93,7 +93,7 @@ async function getCliente(session) {
   // Intento 1: buscar por auth_user_id
   const result1 = await sb
     .from("customers")
-    .select("cod_cliente, business_name, dto_vol")
+    .select("cod_cliente, business_name, dto_vol, lista")
     .eq("auth_user_id", session.user.id)
     .maybeSingle();
 
@@ -109,7 +109,7 @@ async function getCliente(session) {
     console.warn("No se encontró por auth_user_id, intentando por email:", session.user.email);
     const result2 = await sb
       .from("customers")
-      .select("cod_cliente, business_name, dto_vol")
+      .select("cod_cliente, business_name, dto_vol, lista")
       .eq("mail", session.user.email)
       .maybeSingle();
 
@@ -181,8 +181,13 @@ function renderSug() {
     const cod = pick(r, ["cod", "codigo", "item_code"]);
     const desc = pick(r, ["description", "descripcion", "articulo"]);
     const uxb = pick(r, ["uxb"]);
+    const lista = Number(cliente?.lista || 1);
     const listPrice =
-      Number(pick(r, ["list_price", "price_cash", "precio"])) || 0;
+      Number(
+        lista === 2 && r.list2_price != null && r.list2_price !== ""
+          ? r.list2_price
+          : pick(r, ["list_price", "price_cash", "precio"]),
+      ) || 0;
     const dtoVol = Number(cliente?.dto_vol || 0);
 
     // tuPrecio = list_price * (1 - dto_vol)
@@ -286,7 +291,7 @@ async function fetchCustomerFull(customerId) {
   try {
     const { data, error } = await sb
       .from("customers")
-      .select("cod_cliente, business_name, dto_vol")
+      .select("cod_cliente, business_name, dto_vol, lista")
       .eq("id", customerId)
       .maybeSingle();
     if (error || !data) return null;
@@ -368,15 +373,17 @@ async function init() {
       document.body.classList.add("lk-admin-embed");
       let bizName = "";
       let dtoVol = 0;
+      let lista = 1;
       try {
         const r = await sb
           .from("customers")
-          .select("business_name, dto_vol")
+          .select("business_name, dto_vol, lista")
           .eq("cod_cliente", adminCodEarly)
           .maybeSingle();
         if (r && r.data) {
           bizName = r.data.business_name || "";
           dtoVol = r.data.dto_vol != null ? Number(r.data.dto_vol) : 0;
+          lista = r.data.lista != null ? Number(r.data.lista) : 1;
         }
       } catch (e) {
         console.warn("admin override: fetch customer failed", e);
@@ -385,6 +392,7 @@ async function init() {
         cod_cliente: adminCodEarly,
         business_name: bizName,
         dto_vol: dtoVol,
+        lista: lista,
       };
       console.log("[sugerencias] ADMIN MODE — cliente:", cliente);
 
@@ -432,7 +440,7 @@ async function init() {
       try {
         const r = await sb
           .from("customers")
-          .select("cod_cliente, business_name, dto_vol")
+          .select("cod_cliente, business_name, dto_vol, lista")
           .eq("cod_cliente", adminCod)
           .maybeSingle();
         if (r && r.data) {
