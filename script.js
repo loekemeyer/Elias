@@ -960,7 +960,12 @@ function _expoScanQR() {
   var hint = document.getElementById("expoQrHint");
 
   _expoLoadJsQR().then(function () {
-    return navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    return navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+      .catch(function () {
+        // Laptop/desktop sin cámara trasera: usar la que haya.
+        return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      });
   }).then(function (stream) {
     _expoQrStream = stream;
     video.srcObject = stream;
@@ -1271,6 +1276,7 @@ async function expoNuevoCliente() {
   } catch (e) { /* opcional */ }
 }
 
+window._expoCloseNewModal = function () { return _expoCloseNewModal(); };
 function _expoCloseNewModal() {
   var m = document.getElementById("expoNewModal");
   if (!m) return;
