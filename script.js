@@ -3120,6 +3120,16 @@ function unitYourPrice(listPrice) {
   return Number(listPrice || 0) * (1 - dto);
 }
 
+// Precio contado unitario — MISMA fórmula para todas las vistas que muestran
+// "Tu precio contado" (card de catálogo, carrusel NUEVOS y módulo "surtido
+// faltante"): resuelve la lista correcta (getPriceForCustomer, que respeta
+// customerList/expo) → dto x volumen (unitYourPrice) → web (_expoWebMul) → 30%
+// de contado. Un solo lugar, para que el mismo producto no muestre un precio
+// distinto según la pantalla.
+function precioContadoUnitario(product) {
+  return unitYourPrice(getPriceForCustomer(product)) * _expoWebMul() * (1 - 0.3);
+}
+
 /***********************
  * MÉTODO DE PAGO
  ***********************/
@@ -5626,7 +5636,7 @@ function renderProducts() {
     const tuPrecioContado = logged
       ? showListPriceOnly
         ? Number(getPriceForCustomer(p) || 0)
-        : tuPrecio * _expoWebMul() * (1 - 0.3)
+        : precioContadoUnitario(p)
       : 0;
 
     const badge = String(p.badge_status || "")
@@ -6220,8 +6230,7 @@ function _ncBuildPriceBlock(p, logged, showListPriceOnly) {
       <div class="nc-price-big">$${formatMoney(getPriceForCustomer(p))} <span class="nc-iva">+ IVA</span></div>
     `;
   }
-  const tuPrecio = unitYourPrice(getPriceForCustomer(p));
-  const tuPrecioContado = tuPrecio * _expoWebMul() * (1 - 0.3);
+  const tuPrecioContado = precioContadoUnitario(p);
   return `
     <div class="nc-price-label">Tu precio contado</div>
     <div class="nc-price-big">$${formatMoney(tuPrecioContado)} <span class="nc-iva">+ IVA</span></div>
@@ -8856,7 +8865,7 @@ function renderMissingAssortmentModule() {
       var codSafe = String(p.cod || "").trim();
       var imgSrc = primaryProductImage(p);
       var tuPrecio = showTuPrecio
-        ? unitYourPrice(getPriceForCustomer(p))
+        ? precioContadoUnitario(p)
         : Number(getPriceForCustomer(p) || 0);
       var qty = cartQtyById.get(pid) || 0;
 
@@ -10404,7 +10413,7 @@ async function descargarComprobantePedido(orderId) {
     if (productIds.length) {
       const { data: prods, error: prodsErr } = await supabaseClient
         .from("products")
-        .select("id, cod, description, list_price")
+        .select("id, cod, description, list_price, list2_price")
         .in("id", productIds);
 
       if (prodsErr) {
