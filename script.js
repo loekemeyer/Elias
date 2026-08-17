@@ -337,9 +337,16 @@ function renderExpoEntryBar() {
     "</div>" +
     '<select id="customerSelect" class="expo-hidden-select" tabindex="-1" aria-hidden="true"><option value=""></option></select>';
 
+  document.body.classList.add("expo-operator");
   var section = document.getElementById("productos");
   var anchorRow = null;
-  if (section) {
+  // Preferido: meter la barra en la fila de acciones de la mobile-products-bar
+  // (misma fila que "Filtros"), para no ocupar un renglón aparte.
+  var mpbActions = document.querySelector("#mobileProductsBar .mpb-actions");
+  if (mpbActions) {
+    mpbActions.insertBefore(bar, mpbActions.firstChild);
+    anchorRow = document.getElementById("mobileProductsBar");
+  } else if (section) {
     var sortRow = section.querySelector(".sort-row");
     if (sortRow) {
       sortRow.insertBefore(bar, sortRow.firstChild);

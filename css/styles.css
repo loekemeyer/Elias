@@ -15099,3 +15099,43 @@ a.user-menu-item:hover {
 }
 
 /* ==================== FIN EXPO ==================== */
+
+/* ==================== EXPO — barra en una sola fila (operador) ==================== */
+/* Scopeado a body.expo-operator: solo cuando renderExpoEntryBar corrió (admin).
+   No afecta a clientes normales. Junta [chip · Elegir · Nuevo · Filtros] en una fila. */
+body.expo-operator .mobile-products-bar {
+  display: grid !important;              /* visible en todos los anchos para el operador */
+}
+body.expo-operator .mobile-products-bar .mpb-search {
+  display: none !important;             /* ya hay buscador en el header */
+}
+body.expo-operator #productos .sort-row {
+  display: none !important;             /* se reemplaza por la barra de expo + Filtros */
+}
+body.expo-operator .mobile-products-bar .mpb-actions {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 12px;
+}
+body.expo-operator .mpb-actions > .expo-entry-bar {
+  flex: 1 1 auto;
+  width: auto;
+  margin: 0;
+}
+body.expo-operator .mpb-actions > #openFiltersBtn {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 130px;
+}
+/* En pantallas chicas, si no entra, que envuelva prolijo */
+@media (max-width: 560px) {
+  body.expo-operator .mobile-products-bar .mpb-actions {
+    flex-wrap: wrap;
+  }
+  body.expo-operator .mpb-actions > .expo-entry-bar,
+  body.expo-operator .mpb-actions > #openFiltersBtn {
+    flex: 1 1 100%;
+  }
+}
+/* ==================== FIN EXPO fila ==================== */
