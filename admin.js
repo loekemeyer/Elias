@@ -6827,7 +6827,7 @@ async function cargarEstadisticaClientes() {
   bajaBody.innerHTML = "";
 
   // Clientes a ignorar en el análisis (internos / no relevantes)
-  var EST_IGNORED_CODS = new Set(["1", "3878"]);
+  var EST_IGNORED_CODS = new Set(["1", "3878", "1967"]);  // 1967 = Loekemeyer Hnos SRL (empresa hermana)
 
   try {
     // 1) Customers — select * para detectar dinámicamente cuál columna
