@@ -168,7 +168,9 @@ function _expoListSubtotal() {
   (cart || []).forEach(function (item) {
     var p = findAnyProduct(item.productId);
     if (!p) return;
-    s += Number(p.list_price || 0) * (item.qtyCajas * Number(p.uxb || 0));
+    // El tramo se elige sobre el MISMO precio que se muestra: en cliente nuevo
+    // de expo eso es lista 2 (getPriceForCustomer ya resuelve el fallback).
+    s += Number(getPriceForCustomer(p) || 0) * (item.qtyCajas * Number(p.uxb || 0));
   });
   return s;
 }
@@ -2263,8 +2265,10 @@ function isFormatoCliente() { return !!getFormatoCliente(); }
 // Retorna el precio correcto según la lista del cliente logueado
 function getPriceForCustomer(product) {
   if (!product) return 0;
-  // Si lista = 2 (Pablo), usar list2_price si existe
-  if (customerList === 2 && product.list2_price) {
+  // Lista 2 (Pablo) — o un cliente NUEVO de expo, cuya escala corre sobre
+  // LISTA 2 — usan list2_price si existe. Si el producto no tiene list2_price
+  // (137 de 312), cae a list_price.
+  if ((customerList === 2 || _expoClientMode) && product.list2_price) {
     return product.list2_price;
   }
   // Default: list_price (Tierra Nativa o fallback)
