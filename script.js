@@ -803,10 +803,40 @@ function _expoParseQR(raw) {
   var text = String(raw == null ? "" : raw).trim();
   if (!text) return { source: "vacio" };
   if (/^BEGIN:VCARD/i.test(text)) return _expoParseVCard(text);
+  if (/^mailto:/i.test(text)) return _expoParseMailto(text);
   if (_expoIsExpoPresentes(text)) return _expoParseExpoPresentes(text);
   if (/^https?:\/\//i.test(text)) return _expoParseUrl(text);
   if (/^MECARD:/i.test(text)) return _expoParseMecard(text);
   return { fullName: text, source: "qr_text" };
+}
+
+// Credencial VISITANTE Expo Presentes: mailto: + pipe-delimited.
+// Ej (crudo): mailto:SRL|43322970|30515842450|1130982609|tomibeviglia@gmail.com
+//   -> tipo societario (SRL) | DNI | CUIT | teléfono | email
+// La razón social (nombre) NO viaja en el QR del visitante (está impresa en la
+// credencial pero no codificada); queda para cargar a mano. Se mapea lo que sí
+// está: CUIT, teléfono y email. Si el 1er campo fuera un nombre real (no un
+// sufijo societario) se usa como razón social.
+function _expoParseMailto(text) {
+  var body = text.replace(/^mailto:/i, "");
+  try { body = decodeURIComponent(body); } catch (e) {}
+  body = body.trim();
+  if (body.indexOf("|") >= 0) {
+    var f = body.split("|");
+    var out = { source: "qr_visitante" };
+    var LEGAL = /^(srl|sa|sas|s\.?a\.?|s\.?r\.?l\.?|sacif|sacifa|sacifia|sh|sc)$/i;
+    f.forEach(function (raw) {
+      var v = (raw || "").trim();
+      if (!v) return;
+      if (v.indexOf("@") > 0) { if (!out.email) out.email = v; return; }
+      if (/^\d{11}$/.test(v)) { if (!out.cuit) out.cuit = v; return; }   // CUIT
+      if (/^\d{10}$/.test(v)) { if (!out.whatsapp) out.whatsapp = v; return; } // tel
+      if (/^\d+$/.test(v)) return; // DNI u otros números: ignorar
+      if (!LEGAL.test(v) && v.length >= 3 && !out.company) out.company = v;
+    });
+    return out;
+  }
+  return { email: body || undefined, source: "qr_mailto" };
 }
 
 function _expoIsExpoPresentes(text) {
@@ -889,6 +919,7 @@ function _expoFillFromQR(p) {
   }
   // Razón social: empresa; si no vino empresa, el nombre completo.
   set("expoNewRazon", p.company || p.fullName, "Razón social");
+  if (p.cuit) set("expoNewCuit", String(p.cuit).replace(/[^0-9]/g, ""), "CUIT");
   set("expoNewMail", p.email, "Mail");
   if (p.whatsapp) set("expoNewWhatsapp", String(p.whatsapp).replace(/[^0-9]/g, ""), "WhatsApp");
   if (p.province) {
@@ -977,9 +1008,12 @@ function _expoOnQrDecoded(raw) {
     ? "QR leído. Completado: " + llenos.join(", ") + ". Revisá y completá el resto."
     : "QR leído pero sin datos para cargar (formato " + (p.source || "?") + "). Cargá a mano.";
   if (typeof _expoNewStatus === "function") _expoNewStatus(msg, !llenos.length);
-  // DEBUG credencial visitante: mostrar el texto CRUDO para ajustar el parser al
-  // formato real del visitante (quitar este alert cuando esté confirmado).
-  try { alert("QR crudo (sacale captura y pasámelo):\n\n" + String(raw == null ? "" : raw)); } catch (e) {}
+  else alert(msg);
+  // Si no reconoció ningún campo, mostrar el texto crudo para poder ajustar el
+  // parser a un formato de credencial nuevo. En un escaneo exitoso no molesta.
+  if (!llenos.length) {
+    try { alert("QR sin campos reconocidos. Texto crudo:\n\n" + String(raw == null ? "" : raw)); } catch (e) {}
+  }
   try { console.log("[EXPO QR crudo]", raw); } catch (e) {}
 }
 
