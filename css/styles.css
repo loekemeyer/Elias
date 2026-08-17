@@ -15125,7 +15125,23 @@ body.expo-operator .mpb-actions > .expo-entry-bar {
 body.expo-operator .mpb-actions > #openFiltersBtn {
   flex: 0 0 auto;
   width: auto;
-  min-width: 130px;
+  min-width: 0;                /* que mida el contenido, no un cajón ancho */
+  height: 40px;               /* igual a los botones Elegir/Nuevo cliente */
+  border-radius: 10px;        /* igual a .expo-btn */
+  border: 1px solid #d1d5db;  /* igual a .expo-btn-new */
+  background: #fff;
+  color: #111827;
+  font-weight: 600;           /* .expo-btn usa 600, no 700 */
+  padding: 0 16px;
+  gap: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+body.expo-operator .mpb-actions > #openFiltersBtn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+body.expo-operator .mpb-actions > #openFiltersBtn .mpb-btn-ico {
+  color: #111827;
 }
 /* En pantallas chicas, si no entra, que envuelva prolijo */
 @media (max-width: 560px) {
