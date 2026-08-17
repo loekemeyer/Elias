@@ -977,7 +977,10 @@ function _expoOnQrDecoded(raw) {
     ? "QR leído. Completado: " + llenos.join(", ") + ". Revisá y completá el resto."
     : "QR leído pero sin datos para cargar (formato " + (p.source || "?") + "). Cargá a mano.";
   if (typeof _expoNewStatus === "function") _expoNewStatus(msg, !llenos.length);
-  else alert(msg);
+  // DEBUG credencial visitante: mostrar el texto CRUDO para ajustar el parser al
+  // formato real del visitante (quitar este alert cuando esté confirmado).
+  try { alert("QR crudo (sacale captura y pasámelo):\n\n" + String(raw == null ? "" : raw)); } catch (e) {}
+  try { console.log("[EXPO QR crudo]", raw); } catch (e) {}
 }
 
 window._expoScanQR = _expoScanQR;
