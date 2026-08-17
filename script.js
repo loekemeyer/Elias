@@ -1484,10 +1484,6 @@ async function refreshAuthState(sessionOverride) {
     }
   }
 
-  // EXPO: ya se resolvió isAdmin acá. Re-render del selector para que la barra
-  // de expo aparezca aunque el primer render haya corrido antes de saber el rol.
-  if (typeof renderCustomerSelector === "function") renderCustomerSelector();
-
   await loadDeliveryOptions();
 }
 
@@ -10995,10 +10991,8 @@ function renderExpoEntryBar() {
   var anchorRow = null;
   if (section) {
     var sortRow = section.querySelector(".sort-row");
-    if (sortRow && sortRow.parentNode) {
-      // Barra full-width ARRIBA de la fila de filtros (no adentro, así no la
-      // oculta el layout responsive de .sort-row).
-      sortRow.parentNode.insertBefore(bar, sortRow);
+    if (sortRow) {
+      sortRow.insertBefore(bar, sortRow.firstChild);
       anchorRow = sortRow;
     } else {
       var titleRow = section.querySelector(".section-title-row");
