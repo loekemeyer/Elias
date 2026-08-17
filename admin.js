@@ -7300,10 +7300,12 @@ var EM_PROY_WINDOW = 24;        // Meses hacia atrás para calcular proyección
 var EM_DISRUPT_RATIO = 1.5;     // Mes con units > ratio × promedio crudo = candidato disruptivo
 var EM_RECURRING_SIM = 0.8;     // Si otro mes tiene ≥ ratio × monto del candidato → es recurrente, no disruptivo
 var EM_PROGRESSIVE_THR = 0.5;   // Si el mes previo tiene ≥ ratio × monto del candidato → es crecimiento progresivo, no disruptivo
-// Clientes a EXCLUIR de todos los cálculos: cuentas internas / de prueba
-// (1 = Loekemeyer SRL, 3878 = Tierra Nativa SA — usadas para tests en la web).
-// Se aplica a TODAS las fuentes en addRow para consistencia.
-var EM_EXCLUDED_CUSTOMERS = ["1", "3878"];
+// Clientes a EXCLUIR de todos los cálculos de ventas: cuentas internas / de
+// prueba de la web (1, 3878) y la empresa hermana Loekemeyer Hnos SRL (1967),
+// cuyas compras NO son ventas "reales" de mercado y distorsionan los rankings
+// (ej. un artículo que solo se le vendió a Loekemeyer). Se aplica en addRow
+// (ranking / Estadística Madre) y en el detalle de ventas por artículo.
+var EM_EXCLUDED_CUSTOMERS = ["1", "3878", "1967"];
 
 var _estMadreData = null; // [{ cod, desc, totalUnits, byYm: { "YYYY-MM": units } }] — vista actual (recortada por dropdown)
 var _estMadreYms = [];    // array de ym de la vista actual (desc, mes reciente primero)
@@ -8230,6 +8232,14 @@ async function mostrarDetalleVentaMadre(cellEl) {
     });
     if (resp.error) throw resp.error;
     var rows = resp.data || [];
+
+    // Excluir las mismas cuentas internas / empresa hermana que el ranking,
+    // para que el detalle por artículo no muestre ni cuente esas ventas.
+    rows = rows.filter(function (r) {
+      return (
+        EM_EXCLUDED_CUSTOMERS.indexOf(String(r.cod_cliente || "").trim()) === -1
+      );
+    });
 
     if (rows.length === 0) {
       body.innerHTML = '<div style="padding:30px;color:#999;text-align:center">No hay ventas registradas para este artículo en este mes.</div>';
