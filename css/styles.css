@@ -4689,8 +4689,9 @@ body.section-perfil #navSearch {
 @media (max-width: 900px) {
   .mobile-products-bar {
     display: grid;
-    /* Fila 1: buscador full-width. Fila 2: [Categoría] [Filtros] */
-    grid-template-columns: 1fr;
+    /* Buscador (ancho) + Filtros (derecha) en una sola fila */
+    grid-template-columns: 1fr auto;
+    align-items: center;
     gap: 10px;
     padding: 12px 14px;
     background: #fff;
@@ -4711,8 +4712,6 @@ body.section-perfil #navSearch {
     padding: 0 12px;
     height: 44px;
     min-width: 0;
-    /* Full width en mobile — no comparte fila con los botones */
-    grid-column: 1 / -1;
   }
 
   .mpb-ico {
@@ -4731,7 +4730,7 @@ body.section-perfil #navSearch {
 
   .mpb-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: auto;
     gap: 10px;
   }
 
