@@ -4284,7 +4284,7 @@ async function editOrder(orderId) {
   try {
     const { data, error } = await supabaseClient
       .from("order_items")
-      .select("product_id, cajas, source")
+      .select("product_id, cajas")
       .eq("order_id", orderId);
 
     if (error) throw error;
@@ -4300,7 +4300,6 @@ async function editOrder(orderId) {
       cart.push({
         productId: it.product_id,
         qtyCajas: Math.max(1, Math.round(cajas)),
-        source: it.source || "catalogo",
       });
     });
 
