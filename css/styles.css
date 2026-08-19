@@ -15113,6 +15113,32 @@ body.expo-operator .mobile-products-bar {
     display: none !important;
   }
 }
+/* En mobile, orden visual: 1) expo bar  2) buscador  3) Filtros.
+   renderExpoEntryBar() mueve Filtros fuera de mpb-actions y lo deja
+   como hijo directo de mobile-products-bar, así CSS order lo ordena. */
+@media (max-width: 900px) {
+  body.expo-operator .mobile-products-bar .mpb-actions {
+    order: 1;
+  }
+  body.expo-operator .mobile-products-bar .mpb-search {
+    order: 2;
+  }
+  body.expo-operator .mobile-products-bar > #openFiltersBtn {
+    order: 3;
+    width: 100%;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid #e6e6e6;
+    background: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #333;
+  }
+}
 body.expo-operator #productos .sort-row {
   display: none !important;             /* se reemplaza por la barra de expo + Filtros */
 }

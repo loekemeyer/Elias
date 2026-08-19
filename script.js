@@ -689,6 +689,12 @@ function renderExpoEntryBar() {
   if (mpbActions) {
     mpbActions.insertBefore(bar, mpbActions.firstChild);
     anchorRow = document.getElementById("mobileProductsBar");
+    // Sacar Filtros de mpb-actions y ponerlo como hijo directo del
+    // mobileProductsBar para que CSS order lo ubique DESPUÉS del buscador.
+    var filtrosBtn = document.getElementById("openFiltersBtn");
+    if (filtrosBtn && anchorRow) {
+      anchorRow.appendChild(filtrosBtn);
+    }
   } else if (section) {
     var sortRow = section.querySelector(".sort-row");
     if (sortRow) {
