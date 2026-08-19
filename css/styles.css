@@ -15105,8 +15105,13 @@ a.user-menu-item:hover {
 body.expo-operator .mobile-products-bar {
   display: grid !important;              /* visible en todos los anchos para el operador */
 }
-body.expo-operator .mobile-products-bar .mpb-search {
-  display: none !important;             /* ya hay buscador en el header */
+/* En ≤900 px el header search está oculto, así que el mobile search
+   tiene que quedar visible. Solo lo escondemos en anchos donde el
+   buscador del header SÍ se muestra (≥901 px). */
+@media (min-width: 901px) {
+  body.expo-operator .mobile-products-bar .mpb-search {
+    display: none !important;
+  }
 }
 body.expo-operator #productos .sort-row {
   display: none !important;             /* se reemplaza por la barra de expo + Filtros */
