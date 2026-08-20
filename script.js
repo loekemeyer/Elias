@@ -3385,7 +3385,7 @@ async function refreshAuthState(sessionOverride) {
   }
 
   customerProfile = custRow || null;
-  customerList = custRow?.lista || 1; // 1 = Tierra Nativa, 2 = Pablo/Lista2
+  customerList = Number(custRow?.lista) || 1; // 1 = Tierra Nativa, 2 = Pablo/Lista2 — PostgREST serializa el numeric como string ("2"), sin Number() el "=== 2" nunca matchea
   // Snapshot del perfil propio del vendedor para poder volver desde "Pedir para"
   _vendorOwnProfile = customerProfile ? Object.assign({}, customerProfile) : null;
 
