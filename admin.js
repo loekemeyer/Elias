@@ -851,12 +851,15 @@ document
           document.getElementById("manualCuit").value,
         );
       }
+      var escalaChk = document.getElementById("manualEscalaActiva");
+      var escalaOn = escalaChk && escalaChk.checked;
       var payload = {
         cod_cliente: cod,
         business_name: razon,
         cuit: cuitForPayload,
         vend: document.getElementById("manualVend").value.trim(),
-        dto_vol: isNaN(dto) ? null : dto / 100,
+        dto_vol: escalaOn ? 0 : (isNaN(dto) ? null : dto / 100),
+        escala_activa: !!escalaOn,
         mail: document.getElementById("manualMail").value.trim(),
         pin: generatePin(),
       };
@@ -886,6 +889,8 @@ document
         chkReset.checked = false;
         chkReset.dispatchEvent(new Event("change"));
       }
+      var escalaReset = document.getElementById("manualEscalaActiva");
+      if (escalaReset) escalaReset.checked = false;
     } catch (err) {
       toast("Error: " + err.message, "error");
     } finally {
@@ -1379,6 +1384,8 @@ window.openEditModal = function (clienteId) {
   document.getElementById("editVend").value = c.vend || "";
   document.getElementById("editDto").value =
     c.dto_vol != null ? (c.dto_vol * 100).toFixed(0) : "";
+  var editEscChk = document.getElementById("editEscalaActiva");
+  if (editEscChk) editEscChk.checked = !!c.escala_activa;
   document.getElementById("editUsername").value = c.username || "";
   document.getElementById("editClienteModal").style.display = "flex";
 };
@@ -1398,13 +1405,16 @@ document
       .getElementById("editUsername")
       .value.trim()
       .toLowerCase();
+    var editEscChk = document.getElementById("editEscalaActiva");
+    var editEscalaOn = editEscChk && editEscChk.checked;
     var payload = {
       cod_cliente: document.getElementById("editCod").value.trim(),
       cuit: cleanCuit(document.getElementById("editCuit").value),
       business_name: document.getElementById("editRazon").value.trim(),
       mail: document.getElementById("editMail").value.trim(),
       vend: document.getElementById("editVend").value.trim(),
-      dto_vol: isNaN(dto) ? null : dto / 100,
+      dto_vol: editEscalaOn ? 0 : (isNaN(dto) ? null : dto / 100),
+      escala_activa: !!editEscalaOn,
       username: editUsernameVal || null,
     };
     if (!payload.cod_cliente) {
